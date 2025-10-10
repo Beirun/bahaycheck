@@ -18,6 +18,7 @@ interface RequestUpdate {
   longitude?: number;
   latitude?: number;
   requestImage?: string;
+  volunteerId: number;
   dateUpdated: Date;
 }
 
@@ -37,9 +38,9 @@ export async function GET(req: AuthRequest, { params }: { params: { id: string }
       latitude: request.latitude,
       dateCreated: request.dateCreated,
       dateUpdated: request.dateUpdated,
-      userFirstName: user.firstName,
-      userLastName: user.lastName,
-      userPhone: user.userPhone,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
     })
     .from(request)
     .leftJoin(user, eq(user.userId, request.userId))
@@ -53,7 +54,7 @@ export async function GET(req: AuthRequest, { params }: { params: { id: string }
   const mapped = {
     ...r,
     requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
-    userName: `${r.userFirstName} ${r.userLastName}`,
+    userName: `${r.firstName} ${r.lastName}`,
   };
 
   return NextResponse.json({ request: mapped });
@@ -73,10 +74,12 @@ export async function PUT(req: AuthRequest, { params }: { params: { id: string }
     const requestStatus = formData.get("requestStatus")?.toString();
     const longitude = formData.get("longitude")?.toString();
     const latitude = formData.get("latitude")?.toString();
+    const volunteerId = formData.get("volunteerId")?.toString();
     const file = formData.get("requestImage") as File | null;
 
     const updateData: RequestUpdate = {
       dateUpdated: new Date(),
+      volunteerId: Number(volunteerId)
     };
     if (requestDetails) updateData.requestDetails = requestDetails;
     if (requestStatus) updateData.requestStatus = requestStatus;
