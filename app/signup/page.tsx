@@ -14,11 +14,12 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2, Heart, Upload, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import Image from "next/image";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { signup, verify, loading } = useAuthStore();
   const [step, setStep] = useState(1);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,7 +28,6 @@ export default function SignUpPage() {
   const [confirmPw, setConfirmPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [isVolunteer, setIsVolunteer] = useState(false);
   const [license, setLicense] = useState<File | null>(null);
   const [licensePreview, setLicensePreview] = useState<string | null>(null);
@@ -47,20 +47,27 @@ export default function SignUpPage() {
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     try {
-      const raw = phone.replace(/\s/g, "");
-      if (!firstName || !lastName || !raw || !password || !confirmPw)
+      const rawPhone = phone.replace(/\s/g, "");
+      if (!firstName || !lastName || !rawPhone || !password || !confirmPw)
         throw new Error("All fields are required");
       if (password !== confirmPw) throw new Error("Passwords do not match");
-      await new Promise((r) => setTimeout(r, 1000));
-      if (isVolunteer) setStep(2);
-      else setStep(3);
-      if(step === 3) toast.success("We sent a verification code.");
+
+      const formData = new FormData();
+      formData.append("firstName", firstName);
+      formData.append("lastName", lastName);
+      formData.append("phoneNumber", rawPhone);
+      formData.append("password", password);
+      formData.append("confirmPassword", confirmPw);
+      formData.append("role", isVolunteer ? "volunteer" : "citizen");
+      if (license) formData.append("licenseImage", license);
+
+      await signup(formData);
+
+        if (isVolunteer) setStep(2);
+        else setStep(3);
     } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-    } finally {
-      setLoading(false);
+      if (err instanceof Error) throw err;
     }
   };
 
@@ -79,35 +86,20 @@ export default function SignUpPage() {
     e.stopPropagation();
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith("image/")) handleLicenseUpload(file);
-    else toast.error("Only images are allowed");
   };
 
-  const handleLicenseSubmit = async () => {
-    if (!license) return toast.error("Please upload your license");
-    setLoading(true);
-    try {
-      await new Promise((r) => setTimeout(r, 1000));
-      toast.success("License uploaded successfully");
-      setStep(3);
-    } catch {
-      toast.error("Failed to upload license");
-    } finally {
-      setLoading(false);
-    }
+  const handleLicenseSubmit = () => {
+    if (!license) return;
+    setStep(3);
   };
 
   const handleVerificationSubmit = async () => {
-    if (!phone) return toast.error("Please enter your phone number");
-    setLoading(true);
-    try {
-      await new Promise((r) => setTimeout(r, 1000));
-      toast.success("Phone verified successfully");
-      router.push("/dashboard");
-    } catch {
-      toast.error("Verification failed");
-    } finally {
-      setLoading(false);
-    }
+    const code = verification.join("");
+    if (!phone || code.length < 6) return;
+
+    const rawPhone = phone.replace(/\s/g, "");
+    await verify(rawPhone, code);
+    router.push("/dashboard");
   };
 
   return (
@@ -246,16 +238,15 @@ export default function SignUpPage() {
                   {isVolunteer ? "Sign Up as Citizen" : "Sign Up as Volunteer"}
                 </Button>
                 <p className="text-base text-center text-muted-foreground">
-                Already have an account?{" "}
-                <span
-                  onClick={() => router.push("/signin")}
-                  className="text-primary hover:underline cursor-pointer"
-                >
-                  Sign In Here!
-                </span>
-              </p>
+              Already have an account?{" "}
+              <span
+                onClick={() => router.push("/signin")}
+                className="text-primary hover:underline cursor-pointer"
+              >
+                Sign in Here!
+              </span>
+            </p>
               </CardFooter>
-              
             </form>
           </>
         )}
@@ -290,6 +281,7 @@ export default function SignUpPage() {
                       src={licensePreview}
                       alt="License Preview"
                       className="object-contain w-full h-full rounded"
+                      fill
                     />
                     <Button
                       type="button"
@@ -361,11 +353,10 @@ export default function SignUpPage() {
                     className="w-12 h-12 text-center text-lg"
                     value={verification[i] || ""}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, ""); // only digits
+                      const val = e.target.value.replace(/\D/g, "");
                       const newCode = [...verification];
-
                       if (val) {
-                        newCode[i] = val[0]; // keep only first digit
+                        newCode[i] = val[0];
                         setVerification(newCode);
                         if (i < 5)
                           document.getElementById(`code-${i + 1}`)?.focus();
@@ -387,7 +378,6 @@ export default function SignUpPage() {
                           setVerification(prevCode);
                         }
                       } else if (e.key >= "0" && e.key <= "9") {
-                        // auto-move to next input on typing
                         const newCode = [...verification];
                         newCode[i] = e.key;
                         setVerification(newCode);

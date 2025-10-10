@@ -18,7 +18,7 @@ export const POST = async (req: AuthRequest) => {
       .select()
       .from(user)
       .where(
-          and(eq(user.userPhone, phone),isNull(user.dateDeleted))
+          and(eq(user.phoneNumber, phone),isNull(user.dateDeleted))
         )
         .leftJoin(code, eq(user.userId, code.userId))
       .limit(1);
