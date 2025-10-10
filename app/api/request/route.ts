@@ -72,9 +72,9 @@ export async function GET(req: AuthRequest) {
         latitude: request.latitude,
         dateCreated: request.dateCreated,
         dateUpdated: request.dateUpdated,
-        userFirstName: user.firstName,
-        userLastName: user.lastName,
-        userPhone: user.userPhone
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber
       })
       .from(request)
       .leftJoin(user, eq(user.userId, request.userId))
@@ -84,7 +84,7 @@ export async function GET(req: AuthRequest) {
     const mappedRequests = requests.map((r) => ({
       ...r,
       requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
-      userName: `${r.userFirstName} ${r.userLastName}`,
+      userName: `${r.firstName} ${r.lastName}`,
     }));
 
     return NextResponse.json({ requests: mappedRequests });
