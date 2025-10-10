@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     const password = formData.get("password")?.toString();
     const confirmPassword = formData.get("confirmPassword")?.toString();
     const role = formData.get("role")?.toString();
+    const specialization = formData.get("specialization")?.toString();
     const licenseFile = formData.get("licenseImage") as File | null;
 
     if (
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     const existing = await db
       .select()
       .from(user)
-      .where(eq(user.userPhone, phoneNumber))
+      .where(eq(user.phoneNumber, phoneNumber))
       .limit(1);
     if (existing.length > 0)
       return NextResponse.json(
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
             : role.toLowerCase() === "volunteer"
             ? 2
             : 3,
-        userPhone: phoneNumber,
+        phoneNumber: phoneNumber,
         passwordHash: hashed,
         dateCreated: new Date(),
       })
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       const licensePath = `/uploads/license/${fileName}`;
       await db
         .insert(license)
-        .values({ userId: inserted[0].userId, licenseImage: licensePath });
+        .values({ userId: inserted[0].userId, specialization: specialization!, licenseImage: licensePath });
     }
 
     // Generate 6-digit verification code
