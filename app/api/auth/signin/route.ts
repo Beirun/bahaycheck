@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const result = await db
       .select()
       .from(user)
-      .where(and(eq(user.userPhone, phone), isNull(user.dateDeleted)))
+      .where(and(eq(user.phoneNumber, phone), isNull(user.dateDeleted)))
       .leftJoin(role, eq(user.roleId,role.roleId))
       .limit(1);
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     // Generate tokens
     const accessToken = jwt.sign(
-      { userId: u.user.userId, role: u.role?.roleName, phone: u.user.userPhone },
+      { userId: u.user.userId, role: u.role?.roleName, phone: u.user.phoneNumber },
       JWT_SECRET,
       { expiresIn: "15m" }
     );
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       message: "Signed in successful",
       accessToken,
-      user: { id: u.user.userId, phone: u.user.userPhone },
+      user: { id: u.user.userId, phone: u.user.phoneNumber },
     });
 
     res.cookies.set("refreshToken", refreshToken, {
