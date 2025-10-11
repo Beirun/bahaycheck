@@ -70,7 +70,6 @@ async function decrypt(data: string) {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-  const router = useRouter()
 
   const decodeRoles = (token: string | null) => {
     if (!token) return { isAdmin: false, isVolunteer: false }
@@ -249,7 +248,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       localStorage.removeItem(STORAGE_TOKEN)
       set({ user: null, accessToken: null, isAdmin: false, isVolunteer: false, isAuthenticated: false })
       toast.error("Session expired. Please sign in again.")
-      router.push("/signin")
+
     },
   }
 })
