@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useAuthStore } from "./useAuthStore"; // adjust the path if needed
 
 interface Notification {
   notificationId: number;
@@ -23,9 +24,18 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   error: null,
 
   fetchNotifications: async (userId) => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
+      set({ error: "Not authenticated" });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/notifications/${userId}`);
+      const res = await fetch(`/api/notifications/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch notifications");
       const data = await res.json();
       set({ notifications: data.notifications, loading: false });
@@ -35,12 +45,22 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   },
 
   updateNotification: async (notificationId, updatedData) => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
+      set({ error: "Not authenticated" });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
       const res = await fetch(`/api/notifications/${notificationId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(updatedData),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to update notification");
       const data = await res.json();

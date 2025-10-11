@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useAuthStore } from "./useAuthStore"; // adjust path if necessary
 
 interface Request {
   requestId: number;
@@ -34,9 +35,18 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   error: null,
 
   fetchRequests: async () => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
+      set({ error: "Not authenticated" });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/request");
+      const res = await fetch("/api/request", {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch requests");
       const data = await res.json();
       set({ requests: data.requests, loading: false });
@@ -46,9 +56,18 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   },
 
   fetchRequest: async (id) => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
+      set({ error: "Not authenticated" });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/request/${id}`);
+      const res = await fetch(`/api/request/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch request");
       const data = await res.json();
       set({ currentRequest: data.request, loading: false });
@@ -58,9 +77,20 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   },
 
   createRequest: async (formData) => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
+      set({ error: "Not authenticated" });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/request", { method: "POST", body: formData });
+      const res = await fetch("/api/request", {
+        method: "POST",
+        body: formData,
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to create request");
       const data = await res.json();
       set({ requests: [data.request, ...get().requests], loading: false });
@@ -70,9 +100,20 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   },
 
   updateRequest: async (id, formData) => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
+      set({ error: "Not authenticated" });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/request/${id}`, { method: "PUT", body: formData });
+      const res = await fetch(`/api/request/${id}`, {
+        method: "PUT",
+        body: formData,
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to update request");
       const data = await res.json();
       set({
