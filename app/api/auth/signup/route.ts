@@ -7,14 +7,9 @@ import path from "path";
 import fs from "fs";
 import { eq } from "drizzle-orm";
 import { license } from "@/schema/license";
-import { Twilio } from "twilio";
+import HttpSms from "httpsms";
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
-
-// Initialize Twilio client
-const client = new Twilio(accountSid, authToken);
+const client = new HttpSms(process.env.HTTPSMS_API_KEY!);
 
 export const config = { api: { bodyParser: false } };
 
@@ -53,6 +48,8 @@ export async function POST(req: NextRequest) {
       .from(user)
       .where(eq(user.phoneNumber, phoneNumber))
       .limit(1);
+    
+    console.log('Existing:',existing)
     if (existing.length > 0)
       return NextResponse.json(
         { error: "Phone number is already registered." },
@@ -65,13 +62,14 @@ export async function POST(req: NextRequest) {
       );
 
     const hashed = await bcryptjs.hash(password, 10);
+    const found = await db.select().from(user).limit(1);
     const inserted = await db
       .insert(user)
       .values({
         firstName,
         lastName,
         roleId:
-          role.toLowerCase() === "admin"
+          role.toLowerCase() === "admin" || found.length === 0
             ? 1
             : role.toLowerCase() === "volunteer"
             ? 2
@@ -96,7 +94,11 @@ export async function POST(req: NextRequest) {
       const licensePath = `/uploads/license/${fileName}`;
       await db
         .insert(license)
-        .values({ userId: inserted[0].userId, specialization: specialization!, licenseImage: licensePath });
+        .values({
+          userId: inserted[0].userId,
+          specialization: specialization!,
+          licenseImage: licensePath,
+        });
     }
 
     // Generate 6-digit verification code
@@ -111,12 +113,8 @@ export async function POST(req: NextRequest) {
       expiresAt: expiresAt,
       isUsed: false,
     });
-    // Send SMS via Twilio
-    await client.messages.create({
-      body: `Your verification code is: ${verificationCode}`,
-      from: twilioPhoneNumber,
-      to: phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`, // ensure international format
-    });
+
+    await sendSMS(phoneNumber,verificationCode)
 
     return NextResponse.json({
       message: "A verification code has been sent to your phone.",
@@ -130,3 +128,25 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+const sendSMS = async (phoneNumber: string, verificationCode: string) => {
+
+  await client.messages
+    .postSend({
+      content:  `Your verification code is: ${verificationCode}`,
+      from: "+639329413158",
+      encrypted: false,
+      to: phoneNumber.startsWith("+639")
+        ? phoneNumber
+        : phoneNumber.startsWith("09")
+        ? `+63${phoneNumber.slice(1)}`
+        : `+${phoneNumber}`,
+    })
+    .then((message) => {
+      console.log('message',message.id);
+    })
+    .catch((err) => {
+      console.error('error',err);
+    });
+};
+
