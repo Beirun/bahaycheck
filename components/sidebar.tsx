@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { Home, BarChart3, FileText, Users, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface NavigationItem {
   name: string;
@@ -19,6 +21,13 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }: SidebarProps) {
+  const router = useRouter()
+  const {logout} = useAuthStore()
+
+
+  const handleLogout = async () => {
+    await logout(router)
+  }
   const navigation: NavigationItem[] = [
     { name: "Overview", href: "overview", icon: BarChart3, current: activeTab === "overview" },
     { name: "Safety Requests", href: "requests", icon: FileText, current: activeTab === "requests" },
@@ -49,7 +58,7 @@ export default function Sidebar({ activeTab, setActiveTab, sidebarOpen, setSideb
                 className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                   item.current
                     ? "bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 border border-transparent"
                 }`}
               >
                 <item.icon className="h-5 w-5 mr-3" />
@@ -62,7 +71,7 @@ export default function Sidebar({ activeTab, setActiveTab, sidebarOpen, setSideb
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => {/* Your logout logic here */}}
+              onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-3" />
               Logout
@@ -91,7 +100,7 @@ export default function Sidebar({ activeTab, setActiveTab, sidebarOpen, setSideb
                   className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                     item.current
                       ? "bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 border border-transparent"
                   }`}
                 >
                   <item.icon className="h-5 w-5 mr-3" />
@@ -104,7 +113,7 @@ export default function Sidebar({ activeTab, setActiveTab, sidebarOpen, setSideb
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => {/* Your logout logic here */}}
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-3" />
                 Logout

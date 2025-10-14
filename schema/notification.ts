@@ -7,6 +7,7 @@ export const notification = pgTable('notification', {
   title: text('title').notNull(),
   description: text('description').notNull(),
   status: text('status').notNull(),
-  dateCreated: timestamp('date_created').notNull(),
-  dateUpdated: timestamp('date_updated').notNull(),
+  dateCreated: timestamp('date_created', { withTimezone: true }).notNull(),
+  dateUpdated: timestamp('date_updated', { withTimezone: true }),
+  dateDeleted: timestamp('date_deleted', { withTimezone: true })
 });

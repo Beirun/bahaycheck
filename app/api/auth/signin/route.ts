@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const accessToken = jwt.sign(
       { userId: u.user.userId, role: u.role?.roleName, phone: u.user.phoneNumber },
       JWT_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "1m" }
     );
     const refreshToken = jwt.sign(
       { userId: u.user.userId },
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       message: "Signed in successful",
       accessToken,
-      user: { id: u.user.userId, phone: u.user.phoneNumber },
+      user: { userId: u.user.userId, firstName: u.user.firstName, lastName: u.user.lastName ,phoneNumber: u.user.phoneNumber },
     });
 
     res.cookies.set("refreshToken", refreshToken, {

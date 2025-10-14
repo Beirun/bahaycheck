@@ -107,7 +107,7 @@ export default function AccountSettingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-20 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
@@ -147,7 +147,7 @@ export default function AccountSettingsPage() {
               Update your personal information and security preferences
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent >
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="profile" className="flex items-center gap-2">
@@ -210,7 +210,7 @@ export default function AccountSettingsPage() {
                           placeholder="Enter your phone number"
                         />
                         <p className="text-xs text-muted-foreground">
-                          We'll use this to contact you about your volunteer work
+                          We&apos;ll use this to contact you about your volunteer work
                         </p>
                       </div>
 

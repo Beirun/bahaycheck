@@ -13,23 +13,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, LogOut, User, Menu } from "lucide-react";
+import { LogOut, User} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ModeToggle } from "@/components/theme-toggle";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 // Mock current user data
-const currentUser = {
-  userId: 1,
-  roleId: 2, // Assuming 2 is for regular users
-  firstName: "Maria",
-  lastName: "Santos",
-  phoneNumber: "09123456789",
-  passwordHash: "hashed_password",
-  isVerified: true,
-  dateCreated: new Date("2024-01-01"),
-  dateUpdated: null,
-  dateDeleted: null,
-};
 
 // Mock requests for the current user
 const userRequests = [
@@ -65,7 +54,7 @@ const userRequests = [
 
 export default function UserPage() {
   const router = useRouter();
-  const [userData, setUserData] = useState(currentUser);
+  const { user, logout } = useAuthStore()
   const [userRequestsData, setUserRequestsData] = useState(userRequests);
   const [hasActiveRequest, setHasActiveRequest] = useState(false);
   const [activeRequest, setActiveRequest] = useState<any>(null);
@@ -98,20 +87,18 @@ export default function UserPage() {
   };
 
   // Handle logout
-  const handleLogout = () => {
-    // In a real app, this would clear tokens and redirect to login
-    console.log("Logging out...");
-    router.push("/signin");
+  const handleLogout = async() => {
+    await logout(router)
   };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header with Settings Dropdown */}
-      <div className="border-b px-5 w-screen">
+      <div className="h-16 border-b px-5 w-screen">
         <div className="max-w-3xl mx-auto">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-16 w-full">
             {/* Left side - Title */}
-            <div className="flex-1">
+            <div className="flex flex-col">
               <h1 className="text-2xl font-bold text-card-foreground">
                 Safety Evaluation
               </h1>
@@ -121,7 +108,7 @@ export default function UserPage() {
             </div>
 
             {/* Right side - Settings Dropdown */}
-            <div className="flex items-center justify-end flex-1">
+            <div className="flex gap-2 items-center justify-end">
               <ModeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -131,8 +118,8 @@ export default function UserPage() {
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary text-primary-foreground">
-                        {userData.firstName[0]}
-                        {userData.lastName[0]}
+                        {user?.firstName[0] || ""}
+                        {user?.lastName[0] || ""}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -153,10 +140,10 @@ export default function UserPage() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {userData.firstName} {userData.lastName}
+                        {user?.firstName || ""} {user?.lastName || ""}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {userData.phoneNumber}
+                        {user?.phoneNumber.substring(0,4) + " "+ user?.phoneNumber.substring(4,7) + " " +user?.phoneNumber.substring(7) || ""}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -191,13 +178,13 @@ export default function UserPage() {
           <RequestStatus
             activeRequest={activeRequest}
             userRequestsData={userRequestsData}
-            userData={userData}
+            userData={user}
           />
         ) : (
           /* If no active request, show the request form */
           <RequestForm
             userRequestsData={userRequestsData}
-            userData={userData}
+            userData={user}
             onNewRequest={handleNewRequest}
           />
         )}

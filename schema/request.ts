@@ -1,12 +1,13 @@
 import { pgTable, serial, integer, text, doublePrecision, timestamp } from "drizzle-orm/pg-core";
 import { user } from './user';
+import { requestStatus } from "./requestStatus";
 
 export const request = pgTable('request', {
   requestId: serial('request_id').primaryKey(),
   userId: integer('user_id').references(() => user.userId).notNull(),
   requestImage: text('request_image').notNull(),
   requestDetails: text('request_details'),
-  requestStatus: text('request_status').notNull(),
+  requestStatusId: integer('request_status_id').references(() => requestStatus.requestStatusId).notNull(),
   longitude: doublePrecision('longitude').notNull(),
   latitude: doublePrecision('latitude').notNull(),
   volunteerId: integer('volunteer_id').references(() => user.userId),
