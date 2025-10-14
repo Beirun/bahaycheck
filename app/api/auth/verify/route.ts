@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { code } from "@/schema/code";
 import { and, eq, isNull } from "drizzle-orm";
 import { user } from "@/schema/user";
 
-export const POST = async (req: AuthRequest) => {
+export const POST = async (req: NextRequest) => {
   try {
     const body = await req.json();
     const inputCode = body.code?.toString().trim();
