@@ -27,12 +27,16 @@ export default function SignInPage() {
     setPhone(formatPhone(e.target.value));
   };
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const raw = phone.replace(/\s/g, "");
     if (!raw || !password) return;
 
-    await signin(raw, password );
+    // await handleTest()
+
+    await signin(raw, password, router);
   };
 
   return (
