@@ -30,12 +30,13 @@ export interface AuthState {
     phone: string,
     password: string,
     router: AppRouterInstance
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   signup: (data: FormData) => Promise<void>;
   verify: (
     phone: string,
     code: string,
-    router: AppRouterInstance
+    router: AppRouterInstance,
+    isSignIn?: boolean
   ) => Promise<void>;
   logout: (router: AppRouterInstance) => Promise<void>;
   setUser: (u: User | null) => Promise<void>;
@@ -148,7 +149,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Signin failed");
-
+        if (data.isVerified === false) {
+          if (data.message) toast.message(data.message);
+          return false;
+        }
         const roles = decodeRoles(data.accessToken);
         set({
           user: data.user,
@@ -158,7 +162,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
           isAuthenticated: true,
           loading: false,
         });
-       router.replace(
+        router.replace(
           `/${
             get().isAdmin ? "admin" : get().isVolunteer ? "volunteer" : "user"
           }`
@@ -170,10 +174,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
           STORAGE_USER,
           await encrypt(JSON.stringify(data.user))
         );
+        return true;
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Unknown error";
         console.error(message);
         toast.error(message);
+        return true;
+      } finally {
         set({ loading: false });
       }
     },
@@ -192,11 +199,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Unknown error";
         toast.error(message);
+      } finally {
         set({ loading: false });
       }
     },
 
-    verify: async (phone, code, router) => {
+    verify: async (phone, code, router, isSignIn = false) => {
       try {
         set({ loading: true });
         const res = await apiFetch("/api/auth/verify", {
@@ -209,20 +217,24 @@ export const useAuthStore = create<AuthState>((set, get) => {
           throw new Error(data.message || "Verification failed");
 
         if (data.message) toast.success(data.message);
-        if (typeof window !== "undefined") {
-        window.location.replace("/signin");
-      }else router.replace("/signin");
-        set({ loading: false });
+        if (isSignIn)
+          router.replace(
+            `/${
+              get().isAdmin ? "admin" : get().isVolunteer ? "volunteer" : "user"
+            }`
+          );
+        else router.replace("/signin");
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Unknown error";
         toast.error(message);
+      } finally {
         set({ loading: false });
       }
     },
 
     logout: async (router) => {
+      set({ loading: true });
       try {
-        set({ loading: true });
         const res = await apiFetch("/api/auth/logout", {
           method: "POST",
         });
@@ -244,15 +256,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Unknown error";
         toast.error(message);
+      } finally {
         set({ loading: false });
       }
     },
 
     setUser: async (u) => {
-      localStorage.setItem(
-        STORAGE_USER,
-        await encrypt(JSON.stringify(u))
-      );
+      localStorage.setItem(STORAGE_USER, await encrypt(JSON.stringify(u)));
       const roles = decodeRoles(get().accessToken);
       set({
         user: u,
