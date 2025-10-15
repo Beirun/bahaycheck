@@ -98,7 +98,7 @@ export default function SignUpPage() {
     if (!phone || code.length < 6) return;
 
     const rawPhone = phone.replace(/\s/g, "");
-    await verify(rawPhone, code);
+    await verify(rawPhone, code,router);
     router.push("/dashboard");
   };
 
