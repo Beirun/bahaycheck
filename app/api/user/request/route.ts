@@ -31,6 +31,11 @@ export async function POST(req: NextRequest) {
     const latitude = formData.get("latitude")?.toString();
     const file = formData.get("requestImage") as File | null;
 
+    console.log("userId", userId);
+    console.log("requestStatusId", requestStatusId);
+    console.log("longitude", longitude);
+    console.log("latitude", latitude);
+    console.log("file", file);
     if (!userId || !requestStatusId || !longitude || !latitude || !file) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
