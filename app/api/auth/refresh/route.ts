@@ -8,11 +8,11 @@ export async function GET(req: NextRequest) {
   try {
     const cookie = req.headers.get("cookie");
     if (!cookie)
-      return NextResponse.json({ error: "No refresh token" }, { status: 401 });
+      return NextResponse.json({ error: "No refresh token" }, { status: 400 });
 
     const match = cookie.match(/refreshToken=([^;]+)/);
     if (!match)
-      return NextResponse.json({ error: "No refresh token found" }, { status: 401 });
+      return NextResponse.json({ error: "No refresh token found" }, { status: 400 });
 
     const refreshToken = match[1];
 

@@ -13,9 +13,6 @@ const client = new HttpSms(process.env.HTTPSMS_API_KEY!);
 
 export const config = { api: { bodyParser: false } };
 
-function generate6DigitCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (existing.length > 0)
       return NextResponse.json(
         { error: "Phone number is already registered." },
-        { status: 401 }
+        { status: 400 }
       );
     if (password !== confirmPassword)
       return NextResponse.json(
@@ -150,3 +147,8 @@ const sendSMS = async (phoneNumber: string, verificationCode: string) => {
     });
 };
 
+
+
+function generate6DigitCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
