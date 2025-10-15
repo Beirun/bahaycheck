@@ -5,7 +5,10 @@ import { db } from "@/db/drizzle";
 import { user } from "@/schema/user";
 import { and, eq, isNull } from "drizzle-orm";
 import { role } from "@/schema/role";
+import { code } from "@/schema/code";
+import HttpSms from "httpsms";
 
+const client = new HttpSms(process.env.HTTPSMS_API_KEY!);
 const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) throw new Error("Missing JWT_SECRET in .env");
 
@@ -23,14 +26,31 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     if (!result.length)
-      return NextResponse.json({ error: "Invalid phone number" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
 
     const u = result[0];
     const valid = await bcryptjs.compare(password, u.user.passwordHash);
     if (!valid)
-      return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
+      return NextResponse.json({ error: "Incorrect password" }, { status: 400 });
 
-    // Generate tokens
+    if(u.user.isVerified === false) {
+      // Generate 6-digit verification code
+          const verificationCode = generate6DigitCode();
+          const now = new Date();
+          const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+      
+          await db.insert(code).values({
+            userId: u.user.userId,
+            code: verificationCode,
+            dateCreated: now,
+            expiresAt: expiresAt,
+            isUsed: false,
+          });
+      
+          await sendSMS(phone,verificationCode)
+      return NextResponse.json({ message: "Please verify your phone number. We sent a new verification code to your phone", isVerified: u.user.isVerified });
+    }
+      // Generate tokens
     const accessToken = jwt.sign(
       { userId: u.user.userId, role: u.role?.roleName, phone: u.user.phoneNumber },
       JWT_SECRET,
@@ -62,4 +82,33 @@ export async function POST(req: NextRequest) {
     console.error(e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+
+
+const sendSMS = async (phoneNumber: string, verificationCode: string) => {
+
+  await client.messages
+    .postSend({
+      content:  `Your verification code is: ${verificationCode}`,
+      from: "+639329413158",
+      encrypted: false,
+      to: phoneNumber.startsWith("+639")
+        ? phoneNumber
+        : phoneNumber.startsWith("09")
+        ? `+63${phoneNumber.slice(1)}`
+        : `+${phoneNumber}`,
+    })
+    .then((message) => {
+      console.log('message',message.id);
+    })
+    .catch((err) => {
+      console.error('error',err);
+    });
+};
+
+
+
+function generate6DigitCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }

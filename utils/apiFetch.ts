@@ -1,21 +1,22 @@
 import { useAuthStore } from "@/stores/useAuthStore";
-
 export async function apiFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
   const { accessToken, setToken, handleTokenExpiry } = useAuthStore.getState();
-
   // attach current token
-  const headers = new Headers(options.headers || {});
-  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-
+  
+  if (accessToken){
+    ;(options.headers as Record<string, string>)['Authorization'] =  `Bearer ${accessToken}`
+    console.log('test')
+  }
+  console.log('token', accessToken);
+  console.log('options', options);
   let res = await fetch(url, {
     ...options,
-    headers,
     credentials: "include",
   });
-
+  
   // if token expired, try refreshing
   if (res.status === 401) {
     try {
@@ -40,8 +41,9 @@ export async function apiFetch(
         headers: retryHeaders,
         credentials: "include",
       });
-    } catch {
-      handleTokenExpiry();
+    } catch(e) {
+      console.log(e)
+      // handleTokenExpiry();
       throw new Error("Session expired. Please sign in again.");
     }
   }

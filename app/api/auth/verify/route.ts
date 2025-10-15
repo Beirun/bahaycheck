@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { code } from "@/schema/code";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { user } from "@/schema/user";
 
 export const POST = async (req: NextRequest) => {
@@ -21,6 +21,7 @@ export const POST = async (req: NextRequest) => {
           and(eq(user.phoneNumber, phone),isNull(user.dateDeleted))
         )
         .leftJoin(code, eq(user.userId, code.userId))
+        .orderBy(desc(code.codeId))
       .limit(1);
 
     if (!record[0]) {
