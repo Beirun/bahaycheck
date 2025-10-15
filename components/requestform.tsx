@@ -45,6 +45,8 @@ import {
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import Image from "next/image";
+import { text } from "stream/consumers";
+import { useUserStore } from "@/stores/useUserStore";
 
 interface RequestFormProps {
   userRequestsData: any[];
@@ -54,7 +56,7 @@ interface RequestFormProps {
 
 interface FormData {
   requestDetails: string;
-  requestStatus: string;
+  requestStatusId: number;
   longitude: string;
   latitude: string;
   requestImage: File | null;
@@ -74,10 +76,9 @@ export default function RequestForm({
   onNewRequest,
 }: RequestFormProps) {
   const { theme } = useTheme();
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     requestDetails: "",
-    requestStatus: "pending",
+    requestStatusId: 1,
     longitude: "",
     latitude: "",
     requestImage: null,
@@ -87,6 +88,8 @@ export default function RequestForm({
   const [openMap, setOpenMap] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
+
+  const {createRequest, loading} = useUserStore()
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const mapRef = useRef<HTMLDivElement>(null);
@@ -197,7 +200,7 @@ export default function RequestForm({
   const resetForm = () => {
     setFormData({
       requestDetails: "",
-      requestStatus: "pending",
+      requestStatusId: 1,
       latitude: "",
       longitude: "",
       requestImage: null,
@@ -210,85 +213,22 @@ export default function RequestForm({
   const handleSubmit = async () => {
     if (!formData.requestImage || !formData.latitude || !formData.longitude) {
       toast.error("Please complete all required fields");
+      
       return;
     }
 
-    setLoading(true);
-    try {
       const dataToSend = new FormData();
       dataToSend.append("requestImage", formData.requestImage);
-      dataToSend.append("requestDetails", formData.requestDetails);
-      dataToSend.append("requestStatus", formData.requestStatus);
+      dataToSend.append("requestDetails", textareaRef.current?.value || "");
+      dataToSend.append("requestStatusId", formData.requestStatusId.toString());
       dataToSend.append("longitude", formData.longitude);
       dataToSend.append("latitude", formData.latitude);
 
-      const res = await fetch("/api/request", {
-        method: "POST",
-        body: dataToSend,
-      });
-      const data = await res.json();
+      await createRequest(dataToSend);
 
-      if (res.ok) {
-        toast.success("Request created successfully!");
-
-        // Create new request object
-        const newRequest = {
-          requestId: userRequestsData.length + 1,
-          userId: userData.userId,
-          requestImage: URL.createObjectURL(formData.requestImage),
-          requestDetails: formData.requestDetails,
-          requestStatus: "pending",
-          longitude: parseFloat(formData.longitude),
-          latitude: parseFloat(formData.latitude),
-          volunteerId: null,
-          dateCreated: new Date(),
-          dateUpdated: null,
-          dateDeleted: null,
-        };
-
-        // Call parent handler
-        onNewRequest(newRequest);
-
-        // Reset form and close modal
-        resetForm();
-        setOpenDialog(false);
-        setOpenDrawer(false);
-      } else {
-        toast.error(data.error || "Failed to create request");
-      }
-    } catch {
-      toast.error("An error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: any = {
-      pending: { label: "Pending", variant: "secondary", icon: Clock },
-      "in-progress": {
-        label: "In Progress",
-        variant: "default",
-        icon: Loader2,
-      },
-      completed: {
-        label: "Completed",
-        variant: "destructive",
-        icon: CheckCircle,
-      },
-      cancelled: { label: "Cancelled", variant: "outline", icon: AlertCircle },
-    };
-
-    const config = statusConfig[status] || statusConfig.pending;
-    const IconComponent = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <IconComponent className="h-3 w-3" />
-        {config.label}
-      </Badge>
-    );
-  };
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Request Form Content Component
   const RequestFormContent = () => (
@@ -333,12 +273,9 @@ export default function RequestForm({
       <div>
         <Label htmlFor="details">Property Details & Concerns *</Label>
         <Textarea
+          ref={textareaRef}
           id="details"
-          placeholder="Describe your property, any visible damages, structural concerns, and specific areas you're worried about..."
-          value={formData.requestDetails}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, requestDetails: e.target.value }))
-          }
+          placeholder="Describe your property..."
           className="mt-2 min-h-[100px]"
           required
         />
