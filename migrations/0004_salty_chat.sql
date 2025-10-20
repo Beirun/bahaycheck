@@ -1,0 +1,1 @@
+ALTER TABLE "license" ADD COLUMN "is_rejected" boolean DEFAULT false NOT NULL;
