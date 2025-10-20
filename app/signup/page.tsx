@@ -33,7 +33,7 @@ export default function SignUpPage() {
   const [licensePreview, setLicensePreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [verification, setVerification] = useState<string[]>(Array(6).fill(""));
-
+  const [specialization, setSpecialization] = useState('')
   const formatPhone = (v: string) => {
     const d = v.replace(/\D/g, "").slice(0, 11);
     if (d.length <= 4) return d;
@@ -47,6 +47,7 @@ export default function SignUpPage() {
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isVolunteer && step === 1) return setStep(2);
     try {
       const rawPhone = phone.replace(/\s/g, "");
       if (!firstName || !lastName || !rawPhone || !password || !confirmPw)
@@ -61,13 +62,14 @@ export default function SignUpPage() {
       formData.append("confirmPassword", confirmPw);
       formData.append("role", isVolunteer ? "volunteer" : "citizen");
       if (license) formData.append("licenseImage", license);
+      if(specialization) formData.append('specialization', specialization);
 
-      await signup(formData);
-
-        if (isVolunteer) setStep(2);
-        else setStep(3);
+      const res = await signup(formData);
+      if(res) return true
+      else return false
     } catch (err: unknown) {
       if (err instanceof Error) throw err;
+      return false;
     }
   };
 
@@ -88,9 +90,10 @@ export default function SignUpPage() {
     if (file && file.type.startsWith("image/")) handleLicenseUpload(file);
   };
 
-  const handleLicenseSubmit = () => {
+  const handleLicenseSubmit = async (e: React.FormEvent) => {
     if (!license) return;
-    setStep(3);
+    const res = await handleSignupSubmit(e);
+    if(res) setStep(3);
   };
 
   const handleVerificationSubmit = async () => {
@@ -98,13 +101,12 @@ export default function SignUpPage() {
     if (!phone || code.length < 6) return;
 
     const rawPhone = phone.replace(/\s/g, "");
-    await verify(rawPhone, code,router);
-    router.push("/dashboard");
+    await verify(rawPhone, code, router);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-6 py-10">
-      <Card className="w-full max-w-lg shadow-lg border border-border p-6 sm:p-8">
+    <div className="min-h-screen w-screen flex sm:items-center justify-center bg-background sm:px-6 sm:py-10">
+      <Card className="w-screen sm:max-w-lg sm:shadow-lg rounded-none sm:rounded-xl border-0 sm:border sm:border-border pt-12 px-4 sm:p-8">
         {step === 1 && (
           <>
             <CardHeader className="space-y-2 mb-6">
@@ -253,76 +255,91 @@ export default function SignUpPage() {
 
         {step === 2 && isVolunteer && (
           <>
-            <CardHeader className="space-y-2 mb-6">
-              <CardTitle className="text-center text-2xl font-bold tracking-tight">
-                Upload Your License
-              </CardTitle>
-              <CardDescription className="text-center text-base text-muted-foreground">
-                Drag and drop or click to upload a valid license.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onClick={() => inputRef.current?.click()}
-                className="border border-dashed border-border rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 relative"
-              >
-                {!licensePreview ? (
-                  <>
-                    <Upload size={32} className="mb-2" />
-                    <p className="text-muted-foreground">
-                      Drag & drop image or click to select
-                    </p>
-                  </>
-                ) : (
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={licensePreview}
-                      alt="License Preview"
-                      className="object-contain w-full h-full rounded"
-                      fill
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="absolute top-2 right-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLicense(null);
-                        setLicensePreview(null);
-                      }}
-                    >
-                      <Trash2 size={20} />
-                    </Button>
-                  </div>
-                )}
-                <Input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  ref={inputRef}
-                  onChange={(e) =>
-                    e.target.files?.[0] &&
-                    handleLicenseUpload(e.target.files[0])
-                  }
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button
-                onClick={handleLicenseSubmit}
-                className="w-full h-12 text-lg font-semibold"
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin h-5 w-5 mr-2" />
-                ) : (
-                  "Upload License"
-                )}
-              </Button>
-            </CardFooter>
-          </>
+  <CardHeader className="space-y-2 mb-6">
+    <CardTitle className="text-center text-2xl font-bold tracking-tight">
+      Upload Your License
+    </CardTitle>
+    <CardDescription className="text-center text-base text-muted-foreground">
+      Drag and drop or click to upload a valid license.
+    </CardDescription>
+  </CardHeader>
+
+  <CardContent className="space-y-6">
+    <div
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+      className="border border-dashed border-border rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 relative"
+    >
+      {!licensePreview ? (
+        <>
+          <Upload size={32} className="mb-2" />
+          <p className="text-muted-foreground">
+            Drag & drop image or click to select
+          </p>
+        </>
+      ) : (
+        <div className="relative w-full h-full">
+          <Image
+            src={licensePreview}
+            alt="License Preview"
+            className="object-contain w-full h-full rounded"
+            fill
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            className="absolute top-2 right-2"
+            onClick={(e) => {
+              e.stopPropagation()
+              setLicense(null)
+              setLicensePreview(null)
+            }}
+          >
+            <Trash2 size={20} />
+          </Button>
+        </div>
+      )}
+      <Input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        ref={inputRef}
+        onChange={(e) =>
+          e.target.files?.[0] && handleLicenseUpload(e.target.files[0])
+        }
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="specialization" className="text-base font-medium">
+        Specialization
+      </Label>
+      <Input
+        id="specialization"
+        placeholder="Structural Engineer"
+        value={specialization}
+        onChange={(e) => setSpecialization(e.target.value)}
+        className="h-12 text-base"
+      />
+    </div>
+  </CardContent>
+
+  <CardFooter>
+    <Button
+      onClick={handleLicenseSubmit}
+      className="w-full h-12 text-lg font-semibold"
+      disabled={loading}
+    >
+      {loading ? (
+        <Loader2 className="animate-spin h-5 w-5 mr-2" />
+      ) : (
+        "Upload License"
+      )}
+    </Button>
+  </CardFooter>
+</>
+
         )}
 
         {step === 3 && (
