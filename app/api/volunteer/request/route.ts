@@ -37,10 +37,9 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(request.dateUpdated))
       .where(eq(request.volunteerId, userId!));
 
-    const host = req.nextUrl.origin; // e.g., https://example.com
     const mappedRequests = requests.map((r) => ({
       ...r,
-      requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
+      requestImage: r.requestImage || null,
       userName: `${r.firstName} ${r.lastName}`,
     }));
 

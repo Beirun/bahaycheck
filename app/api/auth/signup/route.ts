@@ -5,15 +5,13 @@ import { user } from "@/schema/user";
 import { license } from "@/schema/license";
 import { eq } from "drizzle-orm";
 import { authenticateToken } from "@/utils/auth";
-import { put } from "@vercel/blob";
 
 export const config = { api: { bodyParser: false } };
 
 export async function PUT(req: NextRequest) {
   try {
     const { userId } = await authenticateToken(req);
-    if (!userId)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const formData = await req.formData();
     const firstName = formData.get("firstName")?.toString() || null;
@@ -35,10 +33,8 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "Please re-enter your new password" }, { status: 400 });
 
       const valid = await bcryptjs.compare(currentPassword, u.passwordHash);
-      if (!valid)
-        return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
-      if (newPassword !== confirmPassword)
-        return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
+      if (!valid) return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+      if (newPassword !== confirmPassword) return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
 
       const hashed = await bcryptjs.hash(newPassword, 10);
       await db.update(user).set({ passwordHash: hashed }).where(eq(user.userId, userId));
@@ -51,11 +47,12 @@ export async function PUT(req: NextRequest) {
       .returning();
 
     if (licenseFile) {
-      const blob = await put(licenseFile.name, licenseFile, { access: "public" });
+      const arrayBuffer = await licenseFile.arrayBuffer();
+      const base64License = `data:${licenseFile.type};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
 
       const updatedLicense = await db
         .update(license)
-        .set({ licenseImage: blob.url, isRejected: false })
+        .set({ licenseImage: base64License, isRejected: false })
         .where(eq(license.userId, userId))
         .returning();
 

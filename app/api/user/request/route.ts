@@ -7,15 +7,13 @@ import { requestStatus } from "@/schema/requestStatus";
 import { user } from "@/schema/user";
 import { alias } from "drizzle-orm/pg-core";
 import { sendSMS } from "@/utils/sms";
-import { put } from "@vercel/blob";
-
 
 interface RequestUpdate {
   requestDetails?: string;
   requestStatusId?: number;
   longitude?: number;
   latitude?: number;
-  requestImage?: string;
+  requestImage?: string; // store base64 here
   dateUpdated: Date;
 }
 
@@ -37,14 +35,16 @@ export async function POST(req: NextRequest) {
     if (!userId || !requestStatusId || !longitude || !latitude || !file)
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
 
-    const blob = await put(file.name, file, { access: "public" });
+    // Convert file to base64
+    const arrayBuffer = await file.arrayBuffer();
+    const base64Image = `data:${file.type};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
     const now = new Date();
 
     const inserted = await db
       .insert(request)
       .values({
         userId: Number(userId),
-        requestImage: blob.url,
+        requestImage: base64Image,
         requestDetails,
         requestStatusId: Number(requestStatusId),
         longitude: Number(longitude),
@@ -102,8 +102,8 @@ export async function PUT(req: NextRequest) {
     if (latitude) updateData.latitude = Number(latitude);
 
     if (file) {
-      const blob = await put(file.name, file, { access: "public" });
-      updateData.requestImage = blob.url;
+      const arrayBuffer = await file.arrayBuffer();
+      updateData.requestImage = `data:${file.type};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
     }
 
     const updated = await db

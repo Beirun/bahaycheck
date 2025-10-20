@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { request } from "@/schema/request";
 import { eq, desc } from "drizzle-orm";
@@ -13,7 +13,7 @@ export const config = {
 const volunteer = alias(user, "volunteer");
 
 // api/admin/request
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
       const requests = await db
       .select({
@@ -43,10 +43,9 @@ export async function GET(req: NextRequest) {
 
       .orderBy(desc(request.dateUpdated));
 
-    const host = req.nextUrl.origin; // e.g., https://example.com
     const mappedRequests = requests.map((r) => ({
       ...r,
-      requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
+      requestImage: r.requestImage || null,
       userName: `${r.firstName} ${r.lastName}`,
       volunteerName:
         r.volunteerFirstName && r.volunteerLastName

@@ -5,7 +5,6 @@ import { user } from "@/schema/user";
 import { license } from "@/schema/license";
 import { eq } from "drizzle-orm";
 import { authenticateToken } from "@/utils/auth";
-import { put } from "@vercel/blob";
 
 export const config = { api: { bodyParser: false } };
 
@@ -51,11 +50,12 @@ export async function PUT(req: NextRequest) {
       .returning();
 
     if (licenseFile) {
-      const blob = await put(licenseFile.name, licenseFile, { access: "public" });
+      const arrayBuffer = await licenseFile.arrayBuffer();
+      const base64License = `data:${licenseFile.type};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
 
       const updatedLicense = await db
         .update(license)
-        .set({ licenseImage: blob.url, isRejected: false })
+        .set({ licenseImage: base64License, isRejected: false })
         .where(eq(license.userId, userId))
         .returning();
 
