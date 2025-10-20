@@ -354,7 +354,6 @@ export default function UserPage() {
                       </div>
                     ))}
                 </div>
-                =
               </>
             )}
           </DialogContent>
