@@ -19,6 +19,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,138 +36,146 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  MapPin,
   Calendar,
   Clock,
-  FileText,
   Home,
   CheckCircle,
-  AlertCircle,
   Loader,
+  LogOut,
+  User,
+  AlertTriangle,
 } from "lucide-react";
 import { ModeToggle } from "@/components/theme-toggle";
-
-// Define types for our data
-interface Request {
-  id: string;
-  citizenName: string;
-  barangay: string;
-  sitio: string;
-  phone: string;
-  houseDescription: string;
-  coordinates: string;
-  status: "assigned" | "in-progress" | "completed" | "pending";
-  dateRequested: string;
-  priority: "high" | "medium" | "low";
-  assignedDate: string;
-}
-
-// Mock data for volunteer requests
-const mockRequests: Request[] = [
-  {
-    id: "REQ-001",
-    citizenName: "Maria Santos",
-    barangay: "Poblacion",
-    sitio: "Sitio Proper",
-    phone: "09123456789",
-    houseDescription:
-      "Two-story concrete house with visible cracks on the foundation and leaning walls",
-    coordinates: "11.2345°N, 125.1234°E",
-    status: "assigned",
-    dateRequested: "2024-01-15",
-    priority: "high",
-    assignedDate: "2024-01-16",
-  },
-  {
-    id: "REQ-002",
-    citizenName: "Juan Dela Cruz",
-    barangay: "San Isidro",
-    sitio: "Sitio Bagsakan",
-    phone: "09123456789",
-    houseDescription:
-      "Single-story wooden house with termite damage and weak roof structure",
-    coordinates: "11.2356°N, 125.1245°E",
-    status: "in-progress",
-    dateRequested: "2024-01-10",
-    priority: "medium",
-    assignedDate: "2024-01-11",
-  },
-  {
-    id: "REQ-003",
-    citizenName: "Ana Reyes",
-    barangay: "Sta. Cruz",
-    sitio: "Sitio Crossing",
-    phone: "09123456789",
-    houseDescription:
-      "Mixed materials house with erosion concerns near the foundation",
-    coordinates: "11.2334°N, 125.1223°E",
-    status: "completed",
-    dateRequested: "2024-01-05",
-    priority: "low",
-    assignedDate: "2024-01-06",
-  },
-];
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useRouter } from "next/navigation";
+import { useVolunteerStore } from "@/stores/useVolunteerStore";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Request } from "@/models/request";
+import { MapView } from "@/components/mapview";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 type StatusConfig = {
   [key: string]: {
     label: string;
     variant: "default" | "secondary" | "destructive" | "outline" | "progress";
-    icon: React.ComponentType<any>;
-  };
-};
-
-type PriorityConfig = {
-  [key: string]: {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   };
 };
 
 export default function VolunteerDashboard() {
-  const [activeTab, setActiveTab] = useState("assigned");
+  const { user, logout } = useAuthStore();
+  const {
+    evaluations,
+    requests,
+    license,
+    loading,
+    updateRequestStatus,
+    createEvaluation,
+  } = useVolunteerStore();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("all");
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [assessmentNote, setAssessmentNote] = useState("");
-  const [assessmentStatus, setAssessmentStatus] = useState("");
+  const [houseCategoryId, setHouseCategoryId] = useState("");
+  const [damageCategoryId, setDamageCategoryId] = useState("");
+  const [openMap, setOpenMap] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  const handleLogout = async () => {
+    await logout(router);
+  };
+
+
+  const handleAccountSettings = () => {
+    router.push("/account");
+  };
+
+  const handleUpdateStatus = async (requestId: number) => {
+    const res = await updateRequestStatus(requestId);
+    if (res) setSelectedRequest(null);
+  };
+
+  const handleCreateEvaluation = async () => {
+    const data = {
+      requestId: selectedRequest?.requestId ?? 0,
+      houseCategoryId: Number(houseCategoryId),
+      damageCategoryId: Number(damageCategoryId),
+      note: assessmentNote,
+    };
+    const res = await createEvaluation(data);
+    if (res) {
+      setSelectedRequest(null);
+      setDamageCategoryId("");
+      setHouseCategoryId("");
+      setAssessmentNote("");
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig: StatusConfig = {
       assigned: { label: "Assigned", variant: "destructive", icon: Clock },
-      "in-progress": { label: "In Progress", variant: "progress", icon: Loader },
+      "in progress": {
+        label: "In Progress",
+        variant: "progress",
+        icon: Loader,
+      },
       completed: {
         label: "Completed",
         variant: "secondary",
         icon: CheckCircle,
       },
-
     };
-
-    const config = statusConfig[status] || statusConfig.pending;
+    const config = statusConfig[status] || statusConfig.assigned;
     const IconComponent = config.icon;
-
     return (
-      <Badge variant={config.variant} className={status == "completed" ? "flex items-center gap-1 text-black":"flex items-center gap-1 text-white"}>
+      <Badge
+        variant={config.variant}
+        className={
+          status === "completed"
+            ? "flex items-center gap-1 text-black"
+            : "flex items-center gap-1 text-white"
+        }
+      >
         <IconComponent className="h-3 w-3" />
         {config.label}
       </Badge>
     );
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const priorityConfig: PriorityConfig = {
-      high: { label: "High", variant: "destructive" },
-      medium: { label: "Medium", variant: "default" },
-      low: { label: "Low", variant: "secondary" },
-    };
-
-    const config = priorityConfig[priority] || priorityConfig.medium;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const filteredRequests = mockRequests.filter((request) =>
-    activeTab === "all" ? true : request.status === activeTab
+  const filteredRequests = requests.filter((r) =>
+    activeTab === "all"
+      ? true
+      : r.requestStatus?.toLowerCase() === activeTab.toLowerCase()
   );
+
+  const renderSkeletons = (count = 3) =>
+    Array.from({ length: count }).map((_, i) => (
+      <Card key={i} className="border-border">
+        <CardContent className="space-y-3 p-4">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-2/3" />
+          <div className="flex justify-end">
+            <Skeleton className="h-8 w-24 rounded-md" />
+          </div>
+        </CardContent>
+      </Card>
+    ));
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,67 +189,98 @@ export default function VolunteerDashboard() {
               </h1>
               <p className="text-muted-foreground mt-1">Structural Engineer</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex gap-2 items-center justify-end">
               <ModeToggle />
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary dark:text-white text-card-foreground">
-                  SE
-                </AvatarFallback>
-              </Avatar>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-10 w-10 rounded-full hover:bg-accent"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user?.firstName?.[0] || ""}
+                        {user?.lastName?.[0] || ""}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.firstName} {user?.lastName}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.phoneNumber
+                          ? `${user.phoneNumber.substring(
+                              0,
+                              4
+                            )} ${user.phoneNumber.substring(
+                              4,
+                              7
+                            )} ${user.phoneNumber.substring(7)}`
+                          : ""}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleAccountSettings}
+                    className="cursor-pointer"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Account Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
 
-        {/* Stats Overview */}
-        {/* <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Assigned Requests
-                  </p>
-                  <p className="text-2xl font-bold text-card-foreground">2</p>
-                </div>
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    In Progress
-                  </p>
-                  <p className="text-2xl font-bold text-card-foreground">1</p>
-                </div>
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Loader className="h-6 w-6 text-orange-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Completed
-                  </p>
-                  <p className="text-2xl font-bold text-card-foreground">1</p>
-                </div>
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div> */}
+        {/* Alerts */}
+        {license?.isRejected && (
+          <Alert
+            variant="destructive"
+            className="mb-6 border-red-500 bg-red-500/5"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>License Rejected</AlertTitle>
+            <AlertDescription>
+              Your license has been rejected. Please update your license
+              information to continue receiving assignments.
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-3 text-red-600 border-red-400 hover:bg-red-50"
+                onClick={() => router.push("/account")}
+              >
+                Update License
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        {license && !license?.isVerified && !license.isRejected && (
+          <Alert
+            variant="default"
+            className="mb-6 border-amber-500 bg-amber-500/5"
+          >
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle>License Pending Review</AlertTitle>
+            <AlertDescription>
+              Your license is currently under review. You will be notified once
+              verification is complete.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Request Management */}
         <Card>
@@ -246,105 +293,114 @@ export default function VolunteerDashboard() {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4 ">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="assigned">Assigned</TabsTrigger>
-                <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+                <TabsTrigger value="in progress">In Progress</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
               </TabsList>
 
               <TabsContent value={activeTab} className="space-y-4 mt-4">
-                <p className="font-bold">
-                  Total<span>{activeTab != "all" ? " " : ""}</span>
-                  <span className="capitalize">
-                    {activeTab != "all" ? activeTab : ""}
-                  </span>
-                  : {filteredRequests.length}
-                </p>
-                {filteredRequests.map((request) => (
-                  <Card
-                    key={request.id}
-                    className="cursor-pointer hover:bg-accent/50 transition-colors border-border"
-                    onClick={() => setSelectedRequest(request)}
-                  >
-                    <CardContent>
-                      <div className="flex flex-col space-y-3">
-                        {/* Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Home className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-semibold text-card-foreground">
-                              {request.id}
-                            </span>
-                            {/* {getPriorityBadge(request.priority)} */}
-                          </div>
-                          {getStatusBadge(request.status)}
-                        </div>
+                {loading && renderSkeletons(4)}
+                {!loading &&(
+                  <>
+                    <p className="font-bold">
+                      Total
+                      {activeTab !== "all" && " "}
+                      <span className="capitalize"> {activeTab}</span>:{" "}
+                      {filteredRequests.length}
+                    </p>
 
-                        {/* Citizen Info */}
-                        <div>
-                          <h3 className="font-semibold text-card-foreground">
-                            {request.citizenName}
-                          </h3>
-                          <div className="flex items-center text-sm text-muted-foreground mt-1">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {request.barangay}, {request.sitio}
-                          </div>
-                        </div>
-
-                        {/* House Description */}
-                        <div>
-                          <p className="text-sm text-card-foreground line-clamp-2">
-                            {request.houseDescription}
-                          </p>
-                        </div>
-
-                        {/* Dates */}
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <div className="flex items-center">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            Requested:{" "}
-                            {new Date(
-                              request.dateRequested
-                            ).toLocaleDateString()}
-                          </div>
-                          {request.assignedDate && (
-                            <div className="flex items-center">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Assigned:{" "}
-                              {new Date(
-                                request.assignedDate
-                              ).toLocaleDateString()}
+                    {filteredRequests.map((r) => (
+                      <Card
+                        key={r.requestId}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors border-border"
+                        onClick={() => setSelectedRequest(r)}
+                      >
+                        <CardContent>
+                          <div className="flex flex-col space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Home className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-semibold text-card-foreground">
+                                  {r.requestId}
+                                </span>
+                              </div>
+                              {getStatusBadge(r.requestStatus.toLowerCase())}
                             </div>
-                          )}
-                        </div>
 
-                        {/* Action Button */}
-                        <div className="flex justify-end">
-                          <Button
-                            size="sm"
-                            variant={
-                              request.status === "completed"
-                                ? "outline"
-                                : "default"
-                            }
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedRequest(request);
-                            }}
-                            className={
-                              request.status === "completed" ? "" : "text-white"
-                            }
-                          >
-                            {request.status === "completed"
-                              ? "View Assessment"
-                              : "Start Assessment"}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                            <div>
+                              <h3 className="font-semibold text-card-foreground">
+                                {r.userName}
+                              </h3>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-card-foreground line-clamp-2">
+                                {r.requestDetails}
+                              </p>
+                            </div>
+
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <div className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                Requested:{" "}
+                                {new Date(r.dateCreated).toLocaleDateString()}
+                              </div>
+                              {r.dateUpdated && (
+                                <div className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Assigned:{" "}
+                                  {new Date(r.dateUpdated).toLocaleDateString()}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex justify-end">
+                              {r.requestStatus.toLowerCase() === "assigned" ? (
+                                <Button
+                                  disabled={loading}
+                                  size="sm"
+                                  // onClick={(e) => {
+                                  //   e.stopPropagation();
+                                  //   handleUpdateStatus(r.requestId);
+                                  // }}
+                                >
+                                  View Request
+                                </Button>
+                              ) : (
+                                <Button
+                                  disabled={loading}
+                                  size="sm"
+                                  variant={
+                                    r.requestStatus.toLowerCase() ===
+                                    "completed"
+                                      ? "outline"
+                                      : "default"
+                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedRequest(r);
+                                  }}
+                                  className={
+                                    r.requestStatus.toLowerCase() ===
+                                    "completed"
+                                      ? ""
+                                      : "text-white"
+                                  }
+                                >
+                                  {r.requestStatus.toLowerCase() === "completed"
+                                    ? "View Assessment"
+                                    : "Make Assessment"}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -368,7 +424,6 @@ export default function VolunteerDashboard() {
                 </DialogHeader>
 
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
-                  {/* Request Details */}
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -376,32 +431,22 @@ export default function VolunteerDashboard() {
                           Request ID
                         </Label>
                         <p className="font-medium text-card-foreground">
-                          {selectedRequest.id}
+                          {selectedRequest.requestId}
                         </p>
                       </div>
-                      {/* <div>
-                        <Label className="text-xs text-muted-foreground">
-                          Priority
-                        </Label>
-                        <div>{getPriorityBadge(selectedRequest.priority)}</div>
-                      </div> */}
                       <div className="col-span-2">
                         <Label className="text-xs text-muted-foreground">
                           Citizen
                         </Label>
-                        <p className="font-medium text-card-foreground">
-                          {selectedRequest.citizenName}{" "}
-                          <span className="p-1 px-3 bg-gray-200 rounded-full w-fit">
-                            {selectedRequest.phone}
+                        <p className="font-medium text-card-foreground space-x-2">
+                          {selectedRequest.userName}{" "}
+                          <span className="p-1 px-3 text-card-foreground/60 bg-gray-200 rounded-full w-fit">
+                            {selectedRequest.phoneNumber.substring(0, 4) +
+                              " " +
+                              selectedRequest.phoneNumber.substring(4, 7) +
+                              " " +
+                              selectedRequest.phoneNumber.substring(7)}
                           </span>
-                        </p>
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs text-muted-foreground">
-                          Address
-                        </Label>
-                        <p className="font-medium text-card-foreground">
-                          {selectedRequest.sitio}, {selectedRequest.barangay}
                         </p>
                       </div>
                     </div>
@@ -410,100 +455,224 @@ export default function VolunteerDashboard() {
                       <Label className="text-xs text-muted-foreground">
                         House Description
                       </Label>
-                      <p className="mt-1 text-xs bg-muted p-2 rounded text-card-foreground">
-                        {selectedRequest.houseDescription}
+                      <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                        {selectedRequest.requestDetails}
                       </p>
                     </div>
+                    <div className="relative ">
+                      <div className="w-full h-35 overflow-hidden [mask-image:linear-gradient(to_top,transparent,black)] [--tw-mask-image:linear-gradient(to_top,transparent,black)]">
+                        <MapView
+                          useMarker={false}
+                          className="-mt-75 pointer-events-none"
+                          latitude={selectedRequest.latitude?.toString() || ""}
+                          longitude={
+                            selectedRequest.longitude?.toString() || ""
+                          }
+                          zoom={13}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => setOpenMap(true)}
+                        className="absolute right-1/2 translate-x-1/2 bottom-4"
+                      >
+                        View Map
+                      </Button>
+                    </div>
+                  </div>
+                  {selectedRequest.requestStatus.toLowerCase() ==
+                    "in progress" && (
+                    <div className="space-y-3 border-t pt-4">
+                      <div className="flex w-full gap-2">
+                        <div className="space-y-2 w-1/2">
+                          <Label className="text-xs text-muted-foreground">
+                            Damage Category
+                          </Label>
+                          <Select
+                            value={damageCategoryId}
+                            onValueChange={setDamageCategoryId}
+                          >
+                            <SelectTrigger className="h-8 text-sm w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">
+                                Partially Damaged
+                              </SelectItem>
+                              <SelectItem value="2">Totally Damaged</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2 w-1/2">
+                          <Label className="text-xs text-muted-foreground">
+                            House Category
+                          </Label>
+                          <Select
+                            value={houseCategoryId}
+                            onValueChange={setHouseCategoryId}
+                          >
+                            <SelectTrigger className="h-8 text-sm w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">Safe</SelectItem>
+                              <SelectItem value="2">
+                                Needs Retrofitting
+                              </SelectItem>
+                              <SelectItem value="3">
+                                Requires Rebuilding
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-                    {selectedRequest.coordinates && (
-                      <div>
+                      <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">
-                          Coordinates
+                          Assessment Notes
                         </Label>
-                        <p className="mt-1 text-xs font-mono bg-muted p-2 rounded text-card-foreground">
-                          {selectedRequest.coordinates}
+                        <Textarea
+                          placeholder="Enter your structural assessment..."
+                          value={assessmentNote}
+                          onChange={(e) => setAssessmentNote(e.target.value)}
+                          rows={4}
+                          className="text-sm min-h-[100px]"
+                        />
+                      </div>
+
+                      <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                        <p className="text-xs text-amber-800">
+                          <strong>Note:</strong> Your assessment will be
+                          reviewed by LGU officials.
                         </p>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Assessment Form */}
-                  <div className="space-y-3 border-t pt-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">
-                        Assessment Status
-                      </Label>
-                      <Select
-                        value={assessmentStatus}
-                        onValueChange={setAssessmentStatus}
-                      >
-                        <SelectTrigger className="h-8 text-sm">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="in-progress">
-                            In Progress
-                          </SelectItem>
-                          <SelectItem value="needs-followup">
-                            Needs Follow-up
-                          </SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
+                  )}
+                  {evaluations
+                    .filter((e) => e.requestId === selectedRequest.requestId)
+                    .map((e) => {
+                      return (
+                        <>
 
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">
-                        Assessment Notes
-                      </Label>
-                      <Textarea
-                        placeholder="Enter your structural assessment, observations, safety recommendations, and any immediate concerns..."
-                        value={assessmentNote}
-                        onChange={(e) => setAssessmentNote(e.target.value)}
-                        rows={4}
-                        className="text-sm min-h-[100px]"
-                      />
-                    </div>
-
-                    <div className="bg-amber-50 border border-amber-200 rounded p-3">
-                      <p className="text-xs text-amber-800">
-                        <strong>Note:</strong> Your assessment will be reviewed
-                        by LGU officials and used for safety recommendations to
-                        the homeowner.
-                      </p>
-                    </div>
-                  </div>
+                          <div className="flex w-full gap-2">
+                            <div className="space-y-2 w-1/2">
+                              <Label className="text-xs text-muted-foreground">
+                                Damage Category
+                              </Label>
+                              <div>{e.damageCategory}</div>
+                            </div>
+                            <div className="space-y-2 w-1/2">
+                              <Label className="text-xs text-muted-foreground">
+                                House Category
+                              </Label>
+                              <div>{e.houseCategory}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Assessment Note
+                            </Label>
+                            <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                              {e.note ?? "This volunteer didn't left any note."}
+                            </p>
+                          </div>
+                        </>
+                      );
+                    })}
                 </div>
 
                 <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedRequest(null)}
-                    className="h-9 text-sm w-full sm:w-24"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      // Handle assessment submission
-                      console.log("Assessment submitted:", {
-                        requestId: selectedRequest.id,
-                        assessmentNote,
-                        assessmentStatus,
-                      });
-                      setSelectedRequest(null);
-                      setAssessmentNote("");
-                      setAssessmentStatus("");
-                    }}
-                    className="h-9 text-sm w-full sm:w-32"
-                  >
-                    Submit Assessment
-                  </Button>
+                  {selectedRequest.requestStatus.toLowerCase() !==
+                    "completed" && (
+                    <>
+                      <Button
+                        disabled={loading}
+                        variant="outline"
+                        onClick={() => setSelectedRequest(null)}
+                        className="h-9 text-sm w-full sm:w-24"
+                      >
+                        Cancel
+                      </Button>
+                      {selectedRequest.requestStatus.toLowerCase() ===
+                        "in progress" && (
+                        <Button
+                          disabled={loading}
+                          onClick={async () => await handleCreateEvaluation()}
+                          className="h-9 text-sm"
+                        >
+                          Submit Assessment
+                        </Button>
+                      )}
+                      {selectedRequest.requestStatus.toLowerCase() !==
+                        "in progress" && (
+                        <Button
+                          disabled={loading}
+                          onClick={async () =>
+                            await handleUpdateStatus(selectedRequest.requestId)
+                          }
+                          className="h-9 text-sm w-full sm:w-32"
+                        >
+                          Start Assessment
+                        </Button>
+                      )}
+                    </>
+                  )}
                 </DialogFooter>
               </>
             )}
           </DialogContent>
         </Dialog>
+        {isDesktop ? (
+          <Dialog open={openMap} onOpenChange={setOpenMap}>
+            <DialogContent className="md:max-w-[47.5rem] space-y-4">
+              <DialogHeader>
+                <DialogTitle>Select Property Location</DialogTitle>
+                <DialogDescription>
+                  Click on the map to select your property location or use
+                  current location
+                </DialogDescription>
+              </DialogHeader>
+              <MapView
+                latitude={selectedRequest?.latitude?.toString() || ""}
+                longitude={selectedRequest?.longitude?.toString() || ""}
+              />
+              <DialogFooter>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => setOpenMap(false)}
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Drawer open={openMap} onOpenChange={setOpenMap}>
+            <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh]">
+              <DrawerHeader>
+                <DrawerTitle>Select Property Location</DrawerTitle>
+                <DrawerDescription>
+                  Click on the map to select your property location or use
+                  current location
+                </DrawerDescription>
+              </DrawerHeader>
+              <MapView
+                latitude={selectedRequest?.latitude?.toString() || ""}
+                longitude={selectedRequest?.longitude?.toString() || ""}
+              />
+
+              <DrawerFooter className="pt-4 mb-8">
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => setOpenMap(false)}
+                >
+                  Done
+                </Button>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
+        )}
       </div>
     </div>
   );
