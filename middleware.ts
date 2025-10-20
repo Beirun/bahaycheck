@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateToken } from "@/utils/auth";
+import { authenticateToken, isAuthenticated } from "@/utils/auth";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const authenticatedRoutes = ["/api/admin", "/api/user", "/api/volunteer","/api/notification"];
-  if (authenticatedRoutes.some((route) => route.includes(pathname))) {
+  const authenticatePages = ["/admin", "/user", "/volunteer","/account"];
+
+  if (authenticatePages.some((route) => pathname.startsWith(route))) {
+    const { error } = await isAuthenticated(req);
+    if(error) return error;
+  }
+
+  if (authenticatedRoutes.some((route) => pathname.startsWith(route))) {
+    console.log('path',pathname)
     const payload = await authenticateToken(req);
     if (payload.error)  return payload.error;
     
@@ -31,5 +39,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*", // Apply to all API routes and other paths, excluding static assets
+  matcher: ["/api/:path*", "/:path*"], // Apply to all API routes and other paths, excluding static assets
 };
