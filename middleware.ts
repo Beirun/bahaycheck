@@ -11,17 +11,12 @@ export async function middleware(req: NextRequest) {
   const authenticatePages = ["/admin", "/user", "/volunteer", "/account"];
   const nonAuthenticatedRoutes = ["/signin", "/signup", "/"];
 
-  if (
-    authenticatePages.some((route) => pathname.startsWith(route))
-  ) {
+  if (authenticatePages.some((route) => pathname.startsWith(route))) {
     const { error } = await isAuthenticated(req);
     if (error) return error;
   }
 
-  if (
-    
-    authenticatedRoutes.some((route) => pathname.startsWith(route))
-  ) {
+  if (authenticatedRoutes.some((route) => pathname.startsWith(route))) {
     const payload = await authenticateToken(req);
     if (payload.error) return payload.error;
 
@@ -46,16 +41,9 @@ export async function middleware(req: NextRequest) {
     }
     return NextResponse.next();
   }
-  if (
- 
-    nonAuthenticatedRoutes.some((route) => pathname === route)
-  ) {
-    const { role, error } = await isAuthenticated(req);
-    if (error && pathname !== '/signin') {
-      return NextResponse.redirect(new URL("/signin", req.url));
-    }
+  if (nonAuthenticatedRoutes.some((route) => pathname === route)) {
+    const { role } = await isAuthenticated(req);
     if (role) {
-      console.log(33);
       const route =
         role?.toLowerCase() === "admin"
           ? "/admin"
@@ -65,8 +53,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL(route, req.url));
     }
   }
-      return NextResponse.next();
-
+  return NextResponse.next();
 }
 
 export const config = {
