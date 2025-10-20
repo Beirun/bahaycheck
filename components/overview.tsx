@@ -4,11 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, Home, User as User2, CheckCircle, Clock } from "lucide-react";
+import { Home, User as User2, CheckCircle, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { PackageOpen } from "lucide-react";
-import { Evaluation } from "@/models/evaluation";
 import { User } from "@/models/user";
 import { License } from "@/models/license";
 import { Request } from "@/models/request";

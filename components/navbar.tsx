@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Search, Bell, Menu, LogOut } from "lucide-react";
+import { Search, Menu } from "lucide-react";
 import { ModeToggle } from "@/components/theme-toggle";
 
 

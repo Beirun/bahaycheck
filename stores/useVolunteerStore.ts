@@ -4,7 +4,6 @@ import { apiFetch } from "@/utils/apiFetch";
 import { Evaluation } from "@/models/evaluation";
 import { License } from "@/models/license";
 import { Request } from "@/models/request";
-import { license } from "@/schema/license";
 
 interface VolunteerState {
   license: License | null;
