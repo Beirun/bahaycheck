@@ -3,37 +3,28 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VolunteerView from "./volunteerview";
+import { Evaluation } from "@/models/evaluation";
+import { User } from "@/models/user";
+import { License } from "@/models/license";
+import { Request } from "@/models/request";
 
-// Types
-type VolunteerStatus = "pending" | "approved" | "rejected";
-
-interface VolunteerApplication {
-  id: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  licenseNumber: string;
-  licenseImage: string;
-  specialization: "Structural Engineer" | "Civil Engineer" | "Architect" | "Building Inspector";
-  experience: string;
-  status: VolunteerStatus;
-  dateApplied: string;
-}
 
 interface VolunteersTabProps {
-  volunteers: VolunteerApplication[];
-  pendingVolunteers: VolunteerApplication[];
-  approvedVolunteers: VolunteerApplication[];
-  onViewVolunteer: (volunteer: VolunteerApplication) => void;
+  licenses: License[];
+  volunteers: User[];
+  pendingVolunteers: User[];
+  approvedVolunteers: User[];
+  onViewVolunteer: (volunteer: User) => void;
 }
 
 export default function VolunteersTab({ 
+  licenses,
   volunteers, 
   pendingVolunteers, 
   approvedVolunteers, 
   onViewVolunteer 
 }: VolunteersTabProps) {
+
   return (
     <Card>
       <CardHeader>
@@ -53,12 +44,14 @@ export default function VolunteersTab({
           <TabsContent value="all" className="mt-6">
             <VolunteerView 
               volunteers={volunteers} 
+              licenses={licenses}
               onViewVolunteer={onViewVolunteer} 
             />
           </TabsContent>
           
           <TabsContent value="pending" className="mt-6">
             <VolunteerView 
+              licenses={licenses}
               volunteers={pendingVolunteers} 
               onViewVolunteer={onViewVolunteer} 
             />
@@ -66,6 +59,7 @@ export default function VolunteersTab({
           
           <TabsContent value="approved" className="mt-6">
             <VolunteerView 
+              licenses={licenses}
               volunteers={approvedVolunteers} 
               onViewVolunteer={onViewVolunteer} 
             />
