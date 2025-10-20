@@ -18,31 +18,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Eye, MapPin } from "lucide-react";
+import { Search, Filter, Eye } from "lucide-react";
+import { Request } from "@/models/request";
 
-// Types
-type RequestStatus = "pending" | "in-progress" | "completed" | "cancelled";
-
-interface SafetyRequest {
-  id: string;
-  citizenName: string;
-  phone: string;
-  barangay: string;
-  sitio: string;
-  houseDescription: string;
-  status: RequestStatus;
-  dateRequested: string;
-  coordinates?: string;
-  assignedVolunteer?: string;
-  assessment?: string;
-  notes?: string;
-}
 
 interface RequestsTabProps {
-  filteredRequests: SafetyRequest[];
+  filteredRequests: Request[];
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  onViewRequest: (request: SafetyRequest) => void;
+  onViewRequest: (request: Request) => void;
 }
 
 export default function RequestsTab({
@@ -51,10 +35,10 @@ export default function RequestsTab({
   setSearchTerm,
   onViewRequest,
 }: RequestsTabProps) {
-  const getStatusBadge = (status: RequestStatus) => {
-    const variants: Record<RequestStatus, string> = {
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, string> = {
       pending: "bg-chart-4/20 text-chart-4 border-chart-4/30",
-      "in-progress": "bg-chart-3/20 text-chart-3 border-chart-3/30",
+      "in progress": "bg-chart-3/20 text-chart-3 border-chart-3/30",
       completed: "bg-chart-2/20 text-chart-2 border-chart-2/30",
       cancelled: "bg-destructive/20 text-destructive border-destructive/30",
     };
@@ -104,9 +88,6 @@ export default function RequestsTab({
                     Citizen
                   </TableHead>
                   <TableHead className="text-card-foreground whitespace-nowrap">
-                    Location
-                  </TableHead>
-                  <TableHead className="text-card-foreground whitespace-nowrap">
                     Status
                   </TableHead>
                   <TableHead className="text-card-foreground whitespace-nowrap">
@@ -120,29 +101,22 @@ export default function RequestsTab({
               <TableBody>
                 {filteredRequests.map((request) => (
                   <TableRow
-                    key={request.id}
+                    key={request.requestId}
                     className="cursor-pointer hover:bg-accent/50 transition-colors"
                     onClick={() => onViewRequest(request)}
                   >
                     <TableCell className="w-1/6 font-medium text-card-foreground whitespace-nowrap">
-                      {request.id}
+                      {request.requestId}
                     </TableCell>
                     <TableCell className="w-1/6 text-card-foreground whitespace-nowrap">
-                      {request.citizenName}
+                      {request.userName}
                     </TableCell>
-                    <TableCell className="w-1/4 whitespace-nowrap">
-                      <div className="flex items-center text-card-foreground">
-                        <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                        <span className="truncate">
-                          {request.barangay}, {request.sitio}
-                        </span>
-                      </div>
-                    </TableCell>
+
                     <TableCell className="w-1/6 whitespace-nowrap">
-                      {getStatusBadge(request.status)}
+                      {getStatusBadge(request.requestStatus.toLowerCase())}
                     </TableCell>
                     <TableCell className="w-1/6 text-card-foreground whitespace-nowrap">
-                      {new Date(request.dateRequested).toLocaleDateString()}
+                      {new Date(request.dateCreated).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="w-1/6 whitespace-nowrap">
                       <Button variant="ghost" size="sm">
@@ -160,7 +134,7 @@ export default function RequestsTab({
         <div className="lg:hidden space-y-4">
           {filteredRequests.map((request) => (
             <Card
-              key={request.id}
+              key={request.requestId}
               className="cursor-pointer hover:bg-accent/50 transition-colors border-border group"
               onClick={() => onViewRequest(request)}
             >
@@ -172,18 +146,18 @@ export default function RequestsTab({
                     <div className="flex items-center gap-2 mb-3">
                       <div
                         className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          request.status === "pending"
+                          request.requestStatus.toLowerCase() === "pending"
                             ? "bg-chart-4"
-                            : request.status === "in-progress"
+                            : request.requestStatus.toLowerCase() === "in progress"
                             ? "bg-chart-3"
                             : "bg-chart-2"
                         }`}
                       />
                       <h3 className="font-semibold text-card-foreground truncate text-sm">
-                        {request.barangay}, {request.sitio}
+                        {request.userName}
                       </h3>
                       <div className="flex-shrink-0 ml-auto">
-                        {getStatusBadge(request.status)}
+                        {getStatusBadge(request.requestStatus.toLowerCase())}
                       </div>
                     </div>
 
@@ -192,12 +166,14 @@ export default function RequestsTab({
                       {/* First Row: Location */}
                       <div className="space-x-1 flex items-center">
                         <p className="text-xs text-muted-foreground font-medium">
-                          Name:
+                          Details:
                         </p>
                         <div className="flex items-center text-card-foreground">
                           {/* <MapPin className="h-3 w-3 mr-1.5 flex-shrink-0 text-muted-foreground" /> */}
                           <span className="truncate text-md">
-                            {request.citizenName}
+                            {request.requestDetails.length > 50
+                              ? request.requestDetails.slice(0, 50) + "..."
+                              : request.requestDetails}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0 text-right">
@@ -205,7 +181,7 @@ export default function RequestsTab({
                             Date & Time
                           </p>
                           <p className="text-card-foreground text-xs">
-                            {new Date(request.dateRequested).toLocaleDateString(
+                            {new Date(request.dateCreated).toLocaleDateString(
                               "en-US",
                               {
                                 month: "short",
@@ -213,13 +189,14 @@ export default function RequestsTab({
                               }
                             )}
                             <span className="text-muted-foreground ml-1">
-                              {new Date(
-                                request.dateRequested
-                              ).toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: false,
-                              })}
+                              {new Date(request.dateCreated).toLocaleTimeString(
+                                "en-US",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: false,
+                                }
+                              )}
                             </span>
                           </p>
                         </div>
