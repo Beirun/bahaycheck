@@ -3,14 +3,19 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Toaster } from "@/components/ui/sonner";
+import { useVolunteerStore } from "@/stores/useVolunteerStore";
 
 export default function AuthInit({ children }: { children: React.ReactNode }) {
-  const loadFromStorage = useAuthStore((s) => s.loadFromStorage);
+  const {loadAuthFromStorage} = useAuthStore();
+  const {loadLicenseFromStorage } = useVolunteerStore()
   const isDesktop = useMediaQuery("(min-width: 768px)");
-
   useEffect(() => {
-    loadFromStorage();
-  }, [loadFromStorage]);
+    loadAuthFromStorage();
+  }, [loadAuthFromStorage]);
+
+  useEffect(() =>{
+    loadLicenseFromStorage()
+  },[loadLicenseFromStorage])
 
   return (
     <>
