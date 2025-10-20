@@ -1,37 +1,51 @@
+import { desc } from "drizzle-orm";
+import { user } from "@/schema/user";
+import { requestStatus } from "@/schema/requestStatus";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { request } from "@/schema/request";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { authenticateToken } from "@/utils/auth";
 
-
-// api/volunteer/request
-export async function PUT(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = await authenticateToken(req);
-    const { requestId } = await req.json();
-    if (isNaN(requestId)) return NextResponse.json({ error: "Invalid request ID" }, { status: 400 });
-    if (isNaN(userId!)) return NextResponse.json({ error: "Invalid volunteer ID" }, { status: 400 });
+    const { userId, error } = await authenticateToken(req);
+    if (error) return error;
+    const requests = await db
+      .select({
+        requestId: request.requestId,
+        userId: request.userId,
+        requestImage: request.requestImage,
+        requestDetails: request.requestDetails,
+        requestStatus: requestStatus.requestStatusName,
+        longitude: request.longitude,
+        latitude: request.latitude,
+        dateCreated: request.dateCreated,
+        dateUpdated: request.dateUpdated,
+        dateAssigned: request.dateAssigned,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        volunteerId: request.volunteerId,
+      })
+      .from(request)
+      .innerJoin(
+        requestStatus,
+        eq(requestStatus.requestStatusId, request.requestStatusId)
+      )
+      .leftJoin(user, eq(user.userId, request.userId))
+      .orderBy(desc(request.dateUpdated))
+      .where(eq(request.volunteerId, userId!));
 
+    const host = req.nextUrl.origin; // e.g., https://example.com
+    const mappedRequests = requests.map((r) => ({
+      ...r,
+      requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
+      userName: `${r.firstName} ${r.lastName}`,
+    }));
 
-    const record = await db.select().from(request).where(and(eq(request.requestId, requestId),eq(request.volunteerId, userId!))).limit(1);
-    if (!record[0]) return NextResponse.json({ error: "Request not found" }, { status: 404 });
-
-
-    const updateData = {
-      dateUpdated: new Date(),
-      requestStatusId: 2,
-    };
-
-    const updated = await db
-      .update(request)
-      .set(updateData)
-      .where(eq(request.requestId, requestId))
-      .returning();
-
-    return NextResponse.json({ message: "Request updated", request: updated[0] });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ requests: mappedRequests });
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
