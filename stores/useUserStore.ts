@@ -1,28 +1,9 @@
 import { create } from "zustand";
 import { toast } from "sonner";
 import { apiFetch } from "@/utils/apiFetch";
+import { Evaluation } from "@/models/evaluation";
+import { Request } from "@/models/request";
 
-interface Request {
-  requestId: number;
-  userId: number;
-  requestImage: string | null;
-  requestDetails: string;
-  requestStatus: string;
-  longitude?: number;
-  latitude?: number;
-  dateCreated: string;
-  dateUpdated: string;
-}
-
-interface Evaluation {
-  evaluationId: number;
-  note: string | null;
-  dateCreated: string;
-  dateUpdated: string;
-  requestId: number;
-  houseCategory: string;
-  damageCategory: string;
-}
 
 interface UserState {
   requests: Request[];
@@ -30,30 +11,52 @@ interface UserState {
   loading: boolean;
 
   fetchRequests: () => Promise<void>;
-  createRequest: (data: FormData) => Promise<void>;
+  createRequest: (data: FormData) => Promise<boolean>;
   updateRequest: (requestId: number, data: FormData) => Promise<void>;
   fetchEvaluations: () => Promise<void>;
+  fetchAll: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
   requests: [],
   evaluations: [],
-  loading: false,
-
+  loading: true,
+  fetchAll: async () => {
+  try {
+    set({ loading: true });
+    await Promise.all([
+      get().fetchRequests(),
+      get().fetchEvaluations(),
+    ]);
+  } catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : "Unknown error");
+  } finally {
+    set({ loading: false });
+  }
+},
   fetchRequests: async () => {
     try {
-      set({ loading: true });
       const res = await apiFetch("/api/user/request");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch requests");
+      console.log('resu',data)
       set({ requests: data.requests || [] });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
-    } finally {
-      set({ loading: false });
     }
   },
 
+
+  fetchEvaluations: async () => {
+    try {
+      const res = await apiFetch("/api/user/evaluation");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch evaluations");
+      set({ evaluations: data });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Unknown error");
+    } 
+  },
   createRequest: async (formData) => {
     try {
       set({ loading: true });
@@ -66,8 +69,10 @@ export const useUserStore = create<UserState>((set, get) => ({
 
       set({ requests: [...get().requests, data.request] });
       toast.success(data.message || "Request created");
+      return true;
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
+      return false;
     } finally {
       set({ loading: false });
     }
@@ -89,20 +94,6 @@ export const useUserStore = create<UserState>((set, get) => ({
         ),
       });
       toast.success(data.message || "Request updated");
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Unknown error");
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  fetchEvaluations: async () => {
-    try {
-      set({ loading: true });
-      const res = await apiFetch("/api/user/evaluation");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch evaluations");
-      set({ evaluations: data });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
     } finally {
