@@ -10,7 +10,18 @@ export async function middleware(req: NextRequest) {
   ];
   const authenticatePages = ["/admin", "/user", "/volunteer", "/account"];
   const nonAuthenticatedRoutes = ["/signin", "/signup", "/"];
-
+  if (nonAuthenticatedRoutes.some((route) => pathname === route)) {
+    const { role } = await isAuthenticated(req);
+    if (role) {
+      const route =
+        role?.toLowerCase() === "admin"
+          ? "/admin"
+          : role?.toLowerCase() === "volunteer"
+          ? "/volunteer"
+          : "/user";
+      return NextResponse.redirect(new URL(route, req.url));
+    }
+  }
   if (authenticatePages.some((route) => pathname.startsWith(route))) {
     const { error } = await isAuthenticated(req);
     if (error) return error;
@@ -40,19 +51,6 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
     return NextResponse.next();
-  }
-  if (nonAuthenticatedRoutes.some((route) => pathname === route)) {
-    const { role, error } = await isAuthenticated(req);
-    if(error)   return NextResponse.next();
-    if (role) {
-      const route =
-        role?.toLowerCase() === "admin"
-          ? "/admin"
-          : role?.toLowerCase() === "volunteer"
-          ? "/volunteer"
-          : "/user";
-      return NextResponse.redirect(new URL(route, req.url));
-    }
   }
   return NextResponse.next();
 }
