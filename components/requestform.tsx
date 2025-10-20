@@ -36,7 +36,7 @@ import {
 import { Plus, Loader2, MapPin, Upload } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useUserStore } from "@/stores/useUserStore";
-import { Map } from "./map";
+import Map from "./nossr/map";
 import { Request } from "@/models/request";
 interface RequestFormProps {
   userRequestsData: Request[];

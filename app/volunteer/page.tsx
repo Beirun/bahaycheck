@@ -62,7 +62,7 @@ import { useVolunteerStore } from "@/stores/useVolunteerStore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Request } from "@/models/request";
-import { MapView } from "@/components/mapview";
+import MapView from "@/components/nossr/mapview";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 type StatusConfig = {
