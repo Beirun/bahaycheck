@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const newAccessToken = jwt.sign(
       { userId: payload.userId },
       JWT_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "1h" }
     );
 
     return NextResponse.json({

@@ -188,7 +188,8 @@ export async function PUT(req: NextRequest) {
       message: "Request updated",
       request: mappedRequests[0],
     });
-  } catch {
+  } catch (e){
+    console.error(e)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

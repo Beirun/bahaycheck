@@ -4,7 +4,8 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const authenticatedRoutes = ["/api/admin", "/api/user", "/api/volunteer","/api/notification"];
   const authenticatePages = ["/admin", "/user", "/volunteer","/account"];
-
+  const nonAuthenticatedRoutes = ['/signin','/signup', '/'];
+  
   if (authenticatePages.some((route) => pathname.startsWith(route))) {
     const { error } = await isAuthenticated(req);
     if(error) return error;
@@ -34,6 +35,18 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
     return NextResponse.next();
+  }
+  if(nonAuthenticatedRoutes.some((route) =>pathname === route)){
+    const { role } = await isAuthenticated(req);
+    if(role){
+        console.log(33)
+        const route = role?.toLowerCase() === 'admin'
+          ? "/admin"
+          : role?.toLowerCase() === 'volunteer'
+          ? "/volunteer"
+          : "/user";
+      return NextResponse.redirect(new URL(route, req.url)) 
+    }
   }
 }
 

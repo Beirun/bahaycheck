@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { jwtDecrypt, jwtVerify } from "jose";
 
 const SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || "your-secret-key"
@@ -38,11 +38,13 @@ export async function isAuthenticated(req: NextRequest) {
   try {
     const token = req.cookies.get("refreshToken")?.value;
     if (!token) return {error: NextResponse.redirect(new URL("/signin", req.url))};
-    await jwtVerify(token, SECRET_KEY);
-    return {success: NextResponse.next()}
+    const {payload} = await jwtVerify(token, SECRET_KEY);
+
+    return {role: payload.role as string}
   } catch {
     return {
       error: NextResponse.redirect(new URL("/signin", req.url)) ,
     };
   }
 }
+

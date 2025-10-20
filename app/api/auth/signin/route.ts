@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       { expiresIn: "1h" }
     );
     const refreshToken = jwt.sign(
-      { userId: u.user.userId },
+      { userId: u.user.userId, role: u.role?.roleName },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
-
     return res;
   } catch (e) {
     console.error(e);
