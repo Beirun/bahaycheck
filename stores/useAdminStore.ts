@@ -1,47 +1,10 @@
 import { create } from "zustand";
 import { toast } from "sonner";
-import { useAuthStore } from "./useAuthStore"; // adjust path
 import {  apiFetch } from "@/utils/apiFetch";
-
-interface User {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  roleId?: number;
-}
-
-interface Request {
-  requestId: number;
-  userId: number;
-  requestImage: string | null;
-  requestDetails: string;
-  requestStatus: string;
-  longitude?: number;
-  latitude?: number;
-  dateCreated: string;
-  dateUpdated: string;
-  userName?: string;
-  volunteerId?: number;
-}
-
-interface Evaluation {
-  evaluationId: number;
-  note: string | null;
-  dateCreated: string;
-  dateUpdated: string;
-  requestId: number;
-  houseCategory: string;
-  damageCategory: string;
-}
-
-interface License {
-  licenseId: number;
-  userId: number;
-  licenseImage: string;
-  specialization: string;
-  isVerified: boolean;
-}
+import { Evaluation } from "@/models/evaluation";
+import { User } from "@/models/user";
+import { License } from "@/models/license";
+import { Request } from "@/models/request";
 
 
 interface AdminState {
@@ -53,10 +16,12 @@ interface AdminState {
 
   fetchUsers: () => Promise<void>;
   fetchRequests: () => Promise<void>;
-  assignRequest: (requestId: number, userId: number) => Promise<void>;
+  assignRequest: (requestId: number, userId: number) => Promise<boolean>;
   fetchEvaluations: () => Promise<void>;
   fetchLicenses: () => Promise<void>;
-  verifyVolunteer: (licenseId: number) => Promise<void>;
+  verifyVolunteer: (userId: number) => Promise<boolean>;
+  rejectVolunteer: (userId: number) => Promise<boolean>;
+  fetchAll: () => Promise<void>;
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
@@ -64,7 +29,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   requests: [],
   evaluations: [],
   licenses: [],
-  loading: false,
+  loading: true,
 
   fetchUsers: async () => {
     try {
@@ -87,6 +52,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch requests");
       set({ requests: data.requests || [] });
+      console.log('requests',data.requests)
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -115,8 +81,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         ),
       });
       toast.success(data.message || "Request assigned");
+      return true
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
+      return false
     } finally {
       set({ loading: false });
     }
@@ -150,7 +118,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
   },
 
-  verifyVolunteer: async (licenseId) => {
+  verifyVolunteer: async (userId) => {
     try {
       set({ loading: true });
       const res = await  apiFetch("/api/admin/volunteer", {
@@ -158,21 +126,66 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ licenseId }),
+        body: JSON.stringify({ userId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to verify volunteer");
 
       set({
         licenses: get().licenses.map((l) =>
-          l.licenseId === licenseId ? { ...l, isVerified: true } : l
+          l.userId === userId ? { ...l, isVerified: true } : l
         ),
       });
       toast.success(data.message || "Volunteer verified");
+      return true
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
+      return false
     } finally {
       set({ loading: false });
     }
   },
+  rejectVolunteer: async (userId) => {
+    try {
+      set({ loading: true });
+      const res = await  apiFetch("/api/admin/volunteer/reject", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject volunteer");
+
+      set({
+        licenses: get().licenses.map((l) =>
+          l.userId === userId ? { ...l, isRejected: true } : l
+        ),
+      });
+      toast.success(data.message || "Volunteer verified");
+      return true
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Unknown error");
+      return false
+    } finally {
+      set({ loading: false });
+    }
+  },
+  fetchAll: async () => {
+  try {
+    set({ loading: true });
+    await Promise.all([
+      get().fetchLicenses(),
+      get().fetchUsers(),
+      get().fetchRequests(),
+      get().fetchEvaluations(),
+    ]);
+  } catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : "Unknown error");
+  } finally {
+    set({ loading: false });
+  }
+},
+
 }));
