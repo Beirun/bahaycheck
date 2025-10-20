@@ -446,7 +446,7 @@ export default function VolunteerDashboard() {
                           </Label>
                           <p className="font-medium text-card-foreground space-x-2">
                             {selectedRequest.userName}{" "}
-                            <span className="p-1 px-3 text-card-foreground/60 bg-gray-200 rounded-full w-fit">
+                            <span className="p-1 px-3 text-card-foreground/60 bg-gray-200 dark:bg-gray-800/30 rounded-full w-fit">
                               {selectedRequest.phoneNumber.substring(0, 4) +
                                 " " +
                                 selectedRequest.phoneNumber.substring(4, 7) +
@@ -469,7 +469,7 @@ export default function VolunteerDashboard() {
                         <Label className="text-xs text-muted-foreground">
                           House Image
                         </Label>
-                        <div className="w-full flex justify-center border bg-gray-100">
+                        <div className="w-full flex justify-center border bg-gray-100 dark:bg-gray-700/20">
                           <img
                             key={selectedRequest.requestId}
                             src={selectedRequest.requestImage!}
@@ -680,7 +680,7 @@ export default function VolunteerDashboard() {
                           </Label>
                           <p className="font-medium text-card-foreground space-x-2">
                             {selectedRequest.userName}{" "}
-                            <span className="p-1 px-3 text-card-foreground/60 bg-gray-200 rounded-full w-fit">
+                            <span className="p-1 px-3 text-card-foreground/60 bg-gray-200 dark:bg-gray-800/30 rounded-full w-fit">
                               {selectedRequest.phoneNumber.substring(0, 4) +
                                 " " +
                                 selectedRequest.phoneNumber.substring(4, 7) +

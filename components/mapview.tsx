@@ -42,7 +42,7 @@ export const MapView: React.FC<Props> = ({
     import("leaflet").then((leaflet) => setL(leaflet));
   }, []);
 
-  if (!L) return <div className="h-[600px] w-full bg-gray-100" />;
+  if (!L) return <div className="h-[600px] w-full bg-gray-100 dark:bg-gray-700/20" />;
 
   const lucideMarker = new L.Icon({
     iconUrl:

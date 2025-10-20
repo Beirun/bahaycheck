@@ -289,7 +289,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         if (!res.ok) throw new Error(data.error || "Logout failed");
 
         router.replace("/signin");
-
+        if(get().isAdmin) useAdminStore.getState().resetAll()
+        else if(get().isVolunteer) useVolunteerStore.getState().resetAll()
+        else useUserStore.getState().resetAll()
         localStorage.removeItem(STORAGE_USER);
         localStorage.removeItem(STORAGE_TOKEN);
         localStorage.removeItem("volunteer_license");

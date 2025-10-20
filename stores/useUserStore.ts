@@ -4,7 +4,6 @@ import { apiFetch } from "@/utils/apiFetch";
 import { Evaluation } from "@/models/evaluation";
 import { Request } from "@/models/request";
 
-
 interface UserState {
   requests: Request[];
   evaluations: Evaluation[];
@@ -15,25 +14,28 @@ interface UserState {
   updateRequest: (requestId: number, data: FormData) => Promise<void>;
   fetchEvaluations: () => Promise<void>;
   fetchAll: () => Promise<void>;
+  resetAll: () => void;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
   requests: [],
   evaluations: [],
   loading: true,
+
   fetchAll: async () => {
-  try {
-    set({ loading: true });
-    await Promise.all([
-      get().fetchRequests(),
-      get().fetchEvaluations(),
-    ]);
-  } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : "Unknown error");
-  } finally {
-    set({ loading: false });
-  }
-},
+    try {
+      set({ loading: true });
+      await Promise.all([
+        get().fetchRequests(),
+        get().fetchEvaluations(),
+      ]);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   fetchRequests: async () => {
     try {
       const res = await apiFetch("/api/user/request");
@@ -45,7 +47,6 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-
   fetchEvaluations: async () => {
     try {
       const res = await apiFetch("/api/user/evaluation");
@@ -54,8 +55,9 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({ evaluations: data });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
-    } 
+    }
   },
+
   createRequest: async (formData) => {
     try {
       set({ loading: true });
@@ -98,5 +100,13 @@ export const useUserStore = create<UserState>((set, get) => ({
     } finally {
       set({ loading: false });
     }
+  },
+
+  resetAll: () => {
+    set({
+      requests: [],
+      evaluations: [],
+      loading: false,
+    });
   },
 }));

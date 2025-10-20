@@ -79,13 +79,13 @@ export default function RequestStatus({
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Request Status Overview */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="p-4 bg-blue-50 border border-blue-200 dark:border-blue-800/10 dark:bg-blue-700/5 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-blue-900">
+                  <h3 className="font-semibold text-blue-300">
                     Request #{activeRequest.requestId}
                   </h3>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <p className="text-sm text-blue-200 mt-1">
                     Submitted on{" "}
                     {formatDateTime(activeRequest.dateCreated)}
                   </p>

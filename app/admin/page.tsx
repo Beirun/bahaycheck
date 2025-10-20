@@ -133,7 +133,7 @@ export default function LGUDashboard() {
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">House Image</Label>
-            <div className="w-full flex justify-center border bg-gray-100">
+            <div className="w-full flex justify-center border bg-gray-100 dark:bg-gray-700/20">
               <img
                 key={selectedRequest.requestId}
                 src={selectedRequest.requestImage!}
