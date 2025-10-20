@@ -30,11 +30,22 @@ export async function DELETE(req: NextRequest) {
 
 export async function GET(req: NextRequest){
   try {
-    const { userId } = await authenticateToken(req);
+    const { userId, error } = await authenticateToken(req);
+    if(error) return error;
     if (isNaN(userId!)) return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
 
     const data = await db.select().from(notification).where(eq(notification.userId, userId!));
     return NextResponse.json({notifications: data});
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function PUT(){
+  try {
+    
+    return NextResponse.json({message: "test"});
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
