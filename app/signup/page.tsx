@@ -65,7 +65,10 @@ export default function SignUpPage() {
       if(specialization) formData.append('specialization', specialization);
 
       const res = await signup(formData);
-      if(res) return true
+      if(res) {
+        if(!isVolunteer && step===1) setStep(3)
+        return true
+      }
       else return false
     } catch (err: unknown) {
       if (err instanceof Error) throw err;
