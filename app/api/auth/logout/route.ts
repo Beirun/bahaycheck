@@ -6,7 +6,7 @@ export async function POST(req : NextRequest) {
 
     const res = NextResponse.json({ message: "Logged out successfully" });
     if(token){
-        res.cookies.delete('resfreshToken')
+        res.cookies.delete('refreshToken')
     }
     
   return res;
