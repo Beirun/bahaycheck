@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -283,6 +284,18 @@ export default function UserPage() {
                         {selectedRequest.requestDetails}
                       </p>
                     </div>
+
+                     <div>
+            <Label className="text-xs text-muted-foreground">House Image</Label>
+            <div className="w-full flex justify-center border bg-gray-100">
+              <img
+                key={selectedRequest.requestId}
+                src={selectedRequest.requestImage!}
+                alt="License Preview"
+                className="h-32 w-32 object-contain rounded border"
+              />
+            </div>
+          </div>
                     <div className="relative ">
                       <div className="w-full h-35 overflow-hidden [mask-image:linear-gradient(to_top,transparent,black)] [--tw-mask-image:linear-gradient(to_top,transparent,black)]">
                         <MapView
