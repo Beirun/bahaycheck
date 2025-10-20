@@ -3,16 +3,14 @@ import bcryptjs from "bcryptjs";
 import { db } from "@/db/drizzle";
 import { user } from "@/schema/user";
 import { license } from "@/schema/license";
-import path from "path";
-import fs from "fs";
 import { eq } from "drizzle-orm";
 import { authenticateToken } from "@/utils/auth";
+import { put } from "@vercel/blob";
 
 export const config = { api: { bodyParser: false } };
 
 export async function PUT(req: NextRequest) {
   try {
-
     const { userId } = await authenticateToken(req);
     if (!userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,84 +23,43 @@ export async function PUT(req: NextRequest) {
     const confirmPassword = formData.get("confirmPassword")?.toString() || "";
     const licenseFile = formData.get("licenseImage") as File | null;
 
-   
     const [u] = await db.select().from(user).where(eq(user.userId, userId));
-    if (!u)
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!u) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     if (currentPassword || newPassword || confirmPassword) {
-
-      if (!currentPassword) {
-        return NextResponse.json(
-          { error: "Please enter your current password" },
-          { status: 400 }
-        );
-      } else if (!newPassword) {
-        return NextResponse.json(
-          { error: "Please enter a new password" },
-          { status: 400 }
-        );
-      } else if (!confirmPassword) {
-        return NextResponse.json(
-          { error: "Please re-enter your new password" },
-          { status: 400 }
-        );
-      }
+      if (!currentPassword)
+        return NextResponse.json({ error: "Please enter your current password" }, { status: 400 });
+      if (!newPassword)
+        return NextResponse.json({ error: "Please enter a new password" }, { status: 400 });
+      if (!confirmPassword)
+        return NextResponse.json({ error: "Please re-enter your new password" }, { status: 400 });
 
       const valid = await bcryptjs.compare(currentPassword, u.passwordHash);
-
       if (!valid)
-        return NextResponse.json(
-          { error: "Current password is incorrect" },
-          { status: 400 }
-        );
-
-      if (newPassword !== confirmPassword) {
-        return NextResponse.json(
-          { error: "Passwords do not match" },
-          { status: 400 }
-        );
-      }
+        return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+      if (newPassword !== confirmPassword)
+        return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
 
       const hashed = await bcryptjs.hash(newPassword, 10);
-      await db
-        .update(user)
-        .set({ passwordHash: hashed })
-        .where(eq(user.userId, userId));
+      await db.update(user).set({ passwordHash: hashed }).where(eq(user.userId, userId));
     }
 
     const updatedUser = await db
       .update(user)
-      .set({
-        firstName: firstName ?? u.firstName,
-        lastName: lastName ?? u.lastName,
-      })
+      .set({ firstName: firstName ?? u.firstName, lastName: lastName ?? u.lastName })
       .where(eq(user.userId, userId))
       .returning();
 
     if (licenseFile) {
-
-      const uploadDir = path.join(process.cwd(), "/public/uploads/license");
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      const ext = path.extname(licenseFile.name);
-      const fileName = `${Date.now()}${ext}`;
-      const filePath = path.join(uploadDir, fileName);
-
-      const buffer = Buffer.from(await licenseFile.arrayBuffer());
-      fs.writeFileSync(filePath, buffer);
-
-      const licensePath = `/uploads/license/${fileName}`;
+      const blob = await put(licenseFile.name, licenseFile, { access: "public" });
 
       const updatedLicense = await db
         .update(license)
-        .set({ licenseImage: licensePath, isRejected: false })
+        .set({ licenseImage: blob.url, isRejected: false })
         .where(eq(license.userId, userId))
         .returning();
 
-        return NextResponse.json(
+      return NextResponse.json(
         {
           message: "Profile updated successfully",
           user: {
@@ -129,10 +86,8 @@ export async function PUT(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
