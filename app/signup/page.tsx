@@ -50,10 +50,6 @@ export default function SignUpPage() {
     if (isVolunteer && step === 1) return setStep(2);
     try {
       const rawPhone = phone.replace(/\s/g, "");
-      if (!firstName || !lastName || !rawPhone || !password || !confirmPw)
-        throw new Error("All fields are required");
-      if (password !== confirmPw) throw new Error("Passwords do not match");
-
       const formData = new FormData();
       formData.append("firstName", firstName);
       formData.append("lastName", lastName);

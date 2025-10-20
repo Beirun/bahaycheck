@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       !role
     ) {
       return NextResponse.json(
-        { error: "Missing credentials or license image" },
+        { error: "Missing credentials" },
         { status: 400 }
       );
     }
@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
       .where(eq(user.phoneNumber, phoneNumber))
       .limit(1);
     
-    console.log('Existing:',existing)
     if (existing.length > 0)
       return NextResponse.json(
         { error: "Phone number is already registered." },
