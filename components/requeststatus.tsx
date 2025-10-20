@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { MapView } from "./mapview";
+import MapView from "@/components/nossr/mapview";
 import { Button } from "./ui/button";
 import {
   Card,

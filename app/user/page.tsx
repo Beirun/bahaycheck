@@ -38,7 +38,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { Request } from "@/models/request";
 import { useUserStore } from "@/stores/useUserStore";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { MapView } from "@/components/mapview";
+import MapView from "@/components/nossr/mapview";
 
 export default function UserPage() {
   const router = useRouter();
