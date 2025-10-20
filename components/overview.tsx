@@ -11,12 +11,12 @@ import { PackageOpen } from "lucide-react";
 import { User } from "@/models/user";
 import { License } from "@/models/license";
 import { Request } from "@/models/request";
-import { useAdminStore } from "@/stores/useAdminStore";
 
 interface OverviewTabProps {
   requests: Request[];
   volunteers: User[];
   licenses: License[];
+  loading: boolean;
   onViewRequest: (request: Request) => void;
   onViewVolunteer: (volunteer: User) => void;
   setActiveTab: (tab: string) => void;
@@ -29,6 +29,7 @@ export default function OverviewTab({
   onViewRequest,
   onViewVolunteer,
   setActiveTab,
+  loading,
 }: OverviewTabProps) {
   const pendingRequests = requests.filter((req) => req.requestStatus.toLowerCase() === "pending");
   const inProgressRequests = requests.filter((req) => req.requestStatus.toLowerCase() === "in progress");
@@ -39,7 +40,6 @@ export default function OverviewTab({
       ...l,
     };
   });
-  const { loading } = useAdminStore();
   const pendingVolunteers = currentVolunteers.filter((p) => p.isVerified === false && p.isRejected === false);
   const approvedVolunteers = currentVolunteers.filter((p) => p.isVerified === true);
 

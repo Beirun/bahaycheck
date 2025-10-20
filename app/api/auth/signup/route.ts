@@ -27,8 +27,13 @@ export async function POST(req: NextRequest) {
     const existing = await db.select().from(user).where(eq(user.phoneNumber, phoneNumber)).limit(1);
     if (existing.length > 0)
       return NextResponse.json({ error: "Phone number is already registered." }, { status: 400 });
+    
+    if (password.length < 8 )
+      return NextResponse.json({ error: "Password must be at least 8 characters long." }, { status: 400 });
+
     if (password !== confirmPassword)
       return NextResponse.json({ error: "Passwords do not match." }, { status: 400 });
+
 
     const hashed = await bcryptjs.hash(password, 10);
     const found = await db.select().from(user).limit(1);

@@ -349,6 +349,7 @@ export default function LGUDashboard() {
             />
             {activeTab === "overview" && (
               <OverviewTab
+                loading={loading}
                 licenses={licenses}
                 requests={requests}
                 volunteers={users}
