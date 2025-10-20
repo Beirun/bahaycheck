@@ -37,7 +37,7 @@ export default function VolunteerView({
         isVerified: volunteer?.isVerified,
       };
     })
-    .filter((c) => c.roleId !== 3 && c.isRejected === false && !c.isVerified);
+    .filter((c) => c.roleId !== 3 && (c.isRejected === false || c.isVerified === false));
 
   const getStatusBadge = (isVerified: boolean) => {
     const status = isVerified ? "Approved" : "Pending";
