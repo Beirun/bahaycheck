@@ -3,8 +3,12 @@ import { db } from "@/db/drizzle";
 import { request } from "@/schema/request";
 import fs from "fs";
 import path from "path";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { authenticateToken } from "@/utils/auth";
+import { requestStatus } from "@/schema/requestStatus";
+import { user } from "@/schema/user";
+import { alias } from "drizzle-orm/pg-core";
+import { sendSMS } from "@/utils/sms";
 
 export const config = {
   api: {
@@ -21,23 +25,24 @@ interface RequestUpdate {
   dateUpdated: Date;
 }
 
+const volunteer = alias(user, "volunteer");
+
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await authenticateToken(req);
+    const payload = await authenticateToken(req);
+    if (payload.error) return payload.error;
     const formData = await req.formData();
     const requestDetails = formData.get("requestDetails")?.toString() || null;
     const requestStatusId = formData.get("requestStatusId")?.toString();
     const longitude = formData.get("longitude")?.toString();
     const latitude = formData.get("latitude")?.toString();
     const file = formData.get("requestImage") as File | null;
-
-    console.log("userId", userId);
-    console.log("requestStatusId", requestStatusId);
-    console.log("longitude", longitude);
-    console.log("latitude", latitude);
-    console.log("file", file);
+    const userId = payload.userId;
     if (!userId || !requestStatusId || !longitude || !latitude || !file) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     const uploadDir = path.join(process.cwd(), "/public/uploads/request");
@@ -54,33 +59,52 @@ export async function POST(req: NextRequest) {
     const dbPath = `/uploads/request/${fileName}`;
 
     const now = new Date();
-    const inserted = await db.insert(request).values({
-      userId: Number(userId),
-      requestImage: dbPath,
-      requestDetails,
-      requestStatusId: Number(requestStatusId),
-      longitude: Number(longitude),
-      latitude: Number(latitude),
-      dateCreated: now,
-    }).returning();
+    const inserted = await db
+      .insert(request)
+      .values({
+        userId: Number(userId),
+        requestImage: dbPath,
+        requestDetails,
+        requestStatusId: Number(requestStatusId),
+        longitude: Number(longitude),
+        latitude: Number(latitude),
+        dateCreated: now,
+      })
+      .returning();
 
-    return NextResponse.json({ message: "Request created", request: inserted[0] });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const admins = await db.select({phoneNumber: user.phoneNumber}).from(user).where(eq(user.roleId,1));
+    await Promise.all(admins.map(a => sendSMS(a.phoneNumber, "A new request have been submitted. Please check it out immediately!")));
+
+
+    return NextResponse.json({
+      message: "Request created",
+      request: inserted[0],
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
-
-
 
 export async function PUT(req: NextRequest) {
   try {
     const { requestId } = await req.json();
     const reqId = requestId;
-    if (isNaN(reqId)) return NextResponse.json({ error: "Invalid request ID" }, { status: 400 });
+    if (isNaN(reqId))
+      return NextResponse.json(
+        { error: "Invalid request ID" },
+        { status: 400 }
+      );
 
-    const record = await db.select().from(request).where(eq(request.requestId, reqId)).limit(1);
-    if (!record[0]) return NextResponse.json({ error: "Request not found" }, { status: 404 });
+    const record = await db
+      .select()
+      .from(request)
+      .where(eq(request.requestId, reqId))
+      .limit(1);
+    if (!record[0])
+      return NextResponse.json({ error: "Request not found" }, { status: 404 });
 
     const formData = await req.formData();
     const requestDetails = formData.get("requestDetails")?.toString();
@@ -99,7 +123,8 @@ export async function PUT(req: NextRequest) {
 
     if (file) {
       const uploadDir = path.join(process.cwd(), "/public/uploads/request");
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      if (!fs.existsSync(uploadDir))
+        fs.mkdirSync(uploadDir, { recursive: true });
 
       const fileExt = path.extname(file.name);
       const fileName = `${Date.now()}${fileExt}`;
@@ -117,28 +142,109 @@ export async function PUT(req: NextRequest) {
       .where(eq(request.requestId, reqId))
       .returning();
 
-    return NextResponse.json({ message: "Request updated", request: updated[0] });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const requests = await db
+      .select({
+        requestId: request.requestId,
+        userId: request.userId,
+        requestImage: request.requestImage,
+        requestDetails: request.requestDetails,
+        requestStatus: requestStatus.requestStatusName,
+        longitude: request.longitude,
+        latitude: request.latitude,
+        dateCreated: request.dateCreated,
+        dateUpdated: request.dateUpdated,
+        dateAssigned: request.dateAssigned,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        volunteerId: request.volunteerId,
+
+        volunteerFirstName: volunteer.firstName,
+        volunteerLastName: volunteer.lastName,
+      })
+      .from(request)
+      .innerJoin(
+        requestStatus,
+        eq(requestStatus.requestStatusId, request.requestStatusId)
+      )
+      .leftJoin(user, eq(user.userId, request.userId))
+      .leftJoin(volunteer, eq(volunteer.userId, request.volunteerId))
+
+      .orderBy(desc(request.dateUpdated))
+      .where(eq(request.requestId, updated[0].requestId));
+
+    const host = req.nextUrl.origin; // e.g., https://example.com
+    const mappedRequests = requests.map((r) => ({
+      ...r,
+      requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
+      userName: `${r.firstName} ${r.lastName}`,
+      volunteerName:
+        r.volunteerFirstName && r.volunteerLastName
+          ? `${r.volunteerFirstName} ${r.volunteerLastName}`
+          : null,
+    }));
+
+    return NextResponse.json({
+      message: "Request updated",
+      request: mappedRequests[0],
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
-
 export async function GET(req: NextRequest) {
   try {
+    const { userId } = await authenticateToken(req);
+    const requests = await db
+      .select({
+        requestId: request.requestId,
+        userId: request.userId,
+        requestImage: request.requestImage,
+        requestDetails: request.requestDetails,
+        requestStatus: requestStatus.requestStatusName,
+        longitude: request.longitude,
+        latitude: request.latitude,
+        dateCreated: request.dateCreated,
+        dateUpdated: request.dateUpdated,
+        dateAssigned: request.dateAssigned,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        volunteerId: request.volunteerId,
 
-    const body = await req.json();
-    const id = body.requestId;
-    if (!id || isNaN(Number(id)))
-      return NextResponse.json({ error: "Invalid or missing request ID" }, { status: 400 });
+        volunteerFirstName: volunteer.firstName,
+        volunteerLastName: volunteer.lastName,
+      })
+      .from(request)
+      .innerJoin(
+        requestStatus,
+        eq(requestStatus.requestStatusId, request.requestStatusId)
+      )
+      .leftJoin(user, eq(user.userId, request.userId))
+      .leftJoin(volunteer, eq(volunteer.userId, request.volunteerId))
+      .orderBy(desc(request.dateUpdated))
+      .where(eq(request.userId, userId!));
 
-    const record = await db.select().from(request).where(eq(request.requestId, Number(id))).limit(1);
-    if (!record[0]) return NextResponse.json({ error: "Request not found" }, { status: 404 });
+    const host = req.nextUrl.origin; // e.g., https://example.com
+    const mappedRequests = requests.map((r) => ({
+      ...r,
+      requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
+      userName: `${r.firstName} ${r.lastName}`,
+      volunteerName:
+        r.volunteerFirstName && r.volunteerLastName
+          ? `${r.volunteerFirstName} ${r.volunteerLastName}`
+          : null,
+    }));
 
-    return NextResponse.json({ request: record[0] });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ requests: mappedRequests });
+  } catch  {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
