@@ -48,6 +48,7 @@ export default function SignUpPage() {
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isVolunteer && step === 1) return setStep(2);
+    if(!firstName || !lastName || !phone || !password || !confirmPw) return;
     try {
       const rawPhone = phone.replace(/\s/g, "");
       const formData = new FormData();
@@ -218,7 +219,7 @@ export default function SignUpPage() {
                 <Button
                   type="submit"
                   className="w-full h-12 text-lg font-semibold"
-                  disabled={loading}
+                  disabled={loading || !firstName || !lastName || !phone || !password || !confirmPw}
                 >
                   {loading ? (
                     <Loader2 className="animate-spin h-5 w-5 mr-2" />

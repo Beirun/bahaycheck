@@ -6,12 +6,12 @@ export async function middleware(req: NextRequest) {
   const authenticatePages = ["/admin", "/user", "/volunteer","/account"];
   const nonAuthenticatedRoutes = ['/signin','/signup', '/'];
   
-  if (authenticatePages.some((route) => pathname.startsWith(route))) {
+  if (!pathname.includes('auth') && authenticatePages.some((route) => pathname.startsWith(route))) {
     const { error } = await isAuthenticated(req);
     if(error) return error;
   }
 
-  if (authenticatedRoutes.some((route) => pathname.startsWith(route))) {
+  if (!pathname.includes('auth') && authenticatedRoutes.some((route) => pathname.startsWith(route))) {
     const payload = await authenticateToken(req);
     if (payload.error)  return payload.error;
     
@@ -36,7 +36,7 @@ export async function middleware(req: NextRequest) {
     }
     return NextResponse.next();
   }
-  if(nonAuthenticatedRoutes.some((route) =>pathname === route)){
+  if(!pathname.includes('auth') && nonAuthenticatedRoutes.some((route) =>pathname === route)){
     const { role } = await isAuthenticated(req);
     if(role){
         console.log(33)

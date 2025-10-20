@@ -22,7 +22,7 @@ if (accessToken) {
   if (res.status === 401) {
     try {
       const refreshRes = await fetch("/api/auth/refresh", {
-        method: "POST",
+        method: "GET",
         credentials: "include",
       });
 

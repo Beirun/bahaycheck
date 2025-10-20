@@ -339,9 +339,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
       });
     },
 
-    handleTokenExpiry: () => {
+    handleTokenExpiry: async() => {
       localStorage.removeItem(STORAGE_USER);
       localStorage.removeItem(STORAGE_TOKEN);
+      await apiFetch("/api/auth/logout", { method: "POST" });
       set({
         user: null,
         accessToken: null,
@@ -349,6 +350,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         isVolunteer: false,
         isAuthenticated: false,
       });
+      
       if (typeof window !== "undefined") {
         window.location.replace("/signin");
       }
