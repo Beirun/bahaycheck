@@ -11,7 +11,6 @@ export async function middleware(req: NextRequest) {
   }
 
   if (authenticatedRoutes.some((route) => pathname.startsWith(route))) {
-    console.log('path',pathname)
     const payload = await authenticateToken(req);
     if (payload.error)  return payload.error;
     

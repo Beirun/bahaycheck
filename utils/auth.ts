@@ -18,11 +18,9 @@ export async function authenticateToken(req: NextRequest) {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 403 }),
     };
   }
-  console.log("testt");
   const token = authHeader.split(" ")[1];
   try {
     const { payload } = await jwtVerify(token, SECRET_KEY);
-    console.log("payload", payload);
     const { role, userId, phone } = payload as unknown as Payload;
     return { role, userId, phone };
   } catch (error) {

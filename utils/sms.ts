@@ -16,8 +16,7 @@ export const sendSMS = async (phoneNumber: string, content: string) => {
         ? `+63${phoneNumber.slice(1)}`
         : `+${phoneNumber}`,
     })
-    .then((message) => {
-      console.log('message',message.id);
+    .then(() => {
     })
     .catch((err) => {
       console.error('error',err);

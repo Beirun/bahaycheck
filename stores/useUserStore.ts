@@ -39,7 +39,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       const res = await apiFetch("/api/user/request");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch requests");
-      console.log('resu',data)
       set({ requests: data.requests || [] });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");

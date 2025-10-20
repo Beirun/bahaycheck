@@ -34,6 +34,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import MapView from "@/components/nossr/mapview";
 import { User } from "@/models/user";
 import { Request } from "@/models/request";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function LGUDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -48,7 +49,9 @@ export default function LGUDashboard() {
     verifyVolunteer,
   } = useAdminStore();
 
-  const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    "approve" | "reject" | null
+  >(null);
   const [confirmVolunteerDialog, setConfirmVolunteerDialog] = useState(false);
   const [openMap, setOpenMap] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
@@ -61,16 +64,20 @@ export default function LGUDashboard() {
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  const approvedVolunteers = users.filter(u => licenses.find(l => l.userId === u.userId)?.isVerified);
-  const pendingVolunteers = users.filter(u => {
-    const l = licenses.find(l => l.userId === u.userId);
+  const approvedVolunteers = users.filter(
+    (u) => licenses.find((l) => l.userId === u.userId)?.isVerified
+  );
+  const pendingVolunteers = users.filter((u) => {
+    const l = licenses.find((l) => l.userId === u.userId);
     return l && !l.isVerified && !l.isRejected;
   });
-  const filteredRequests = requests.filter(r => r.userName?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredRequests = requests.filter((r) =>
+    r.userName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleViewRequest = (r: Request) => {
     setSelectedRequest(r);
-    const v = users.find(u => u.userId === r.volunteerId);
+    const v = users.find((u) => u.userId === r.volunteerId);
     setAssignedVolunteer(v ? v.userId.toString() : "0");
     setIsRequestDialogOpen(true);
   };
@@ -86,8 +93,14 @@ export default function LGUDashboard() {
     if (res) setIsRequestDialogOpen(false);
   };
 
-  const handleVolunteerAction = async (id: number, action: "approve" | "reject") => {
-    const res = action === "approve" ? await verifyVolunteer(id) : await rejectVolunteer(id);
+  const handleVolunteerAction = async (
+    id: number,
+    action: "approve" | "reject"
+  ) => {
+    const res =
+      action === "approve"
+        ? await verifyVolunteer(id)
+        : await rejectVolunteer(id);
     if (res) {
       setIsVolunteerDialogOpen(false);
       setConfirmVolunteerDialog(false);
@@ -95,7 +108,7 @@ export default function LGUDashboard() {
   };
 
   const renderRequestContent = (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 text-sm overflow-y-auto">
       {selectedRequest && (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -114,7 +127,9 @@ export default function LGUDashboard() {
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Details</Label>
-            <p className="text-xs bg-muted p-2 rounded">{selectedRequest.requestDetails}</p>
+            <p className="text-xs bg-muted p-2 rounded">
+              {selectedRequest.requestDetails}
+            </p>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">House Image</Label>
@@ -145,52 +160,107 @@ export default function LGUDashboard() {
               View Map
             </Button>
           </div>
+          {selectedRequest.volunteerId && !evaluations.some(e => e.requestId === selectedRequest.requestId) && (
+            <div>
+            <Label className="text-xs text-muted-foreground">Assigned Volunteer</Label>
+            <p className="text-xs bg-muted p-2 rounded">
+              {selectedRequest.volunteerName}
+            </p>
+          </div>
+          )}
+          {
+            !selectedRequest.volunteerId && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  Assign Volunteer
+                </Label>
+                <Select
+                  defaultValue="Unassigned"
+                  value={assignedVolunteer}
+                  onValueChange={setAssignedVolunteer}
+               
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Select engineer" />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="0">Unassigned</SelectItem>
+                    {approvedVolunteers.map((volunteer) => (
+                      <SelectItem
+                        key={volunteer.userId}
+                        value={volunteer.userId.toString()}
+                      >
+                        {volunteer.firstName} {volunteer.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )
+          }
 
-          {evaluations.filter(e => e.requestId === selectedRequest.requestId).map(e => (
-            <div key={e.requestId}>
-              <div className="w-full flex justify-center text-lg font-medium pt-4">Assessment Details</div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Volunteer Name</Label>
-                <div>{selectedRequest.volunteerName}</div>
-              </div>
-              <div className="flex w-full gap-2">
-                <div className="space-y-2 w-1/2">
-                  <Label className="text-xs text-muted-foreground">Damage Category</Label>
-                  <div>{e.damageCategory}</div>
+          {evaluations
+            .filter((e) => e.requestId === selectedRequest.requestId)
+            .map((e) => (
+              <div key={e.requestId}>
+                <div className="w-full flex justify-center text-lg font-medium pt-4">
+                  Assessment Details
                 </div>
-                <div className="space-y-2 w-1/2">
-                  <Label className="text-xs text-muted-foreground">House Category</Label>
-                  <div>{e.houseCategory}</div>
+                <div className="gap-2 py-4">
+                  <Label className="text-xs text-muted-foreground">
+                    Volunteer Name
+                  </Label>
+                  <div>{selectedRequest.volunteerName}</div>
+                </div>
+                <div className="flex w-full gap-2 py-4">
+                  <div className="space-y-2 w-1/2">
+                    <Label className="text-xs text-muted-foreground">
+                      Damage Category
+                    </Label>
+                    <div>{e.damageCategory}</div>
+                  </div>
+                  <div className="space-y-2 w-1/2">
+                    <Label className="text-xs text-muted-foreground">
+                      House Category
+                    </Label>
+                    <div>{e.houseCategory}</div>
+                  </div>
+                </div>
+                <div className="gap-2 py-4">
+                  <Label className="text-xs text-muted-foreground">
+                    Assessment Note
+                  </Label>
+                  <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                    {e.note ?? "This volunteer didn't left any note."}
+                  </p>
                 </div>
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Assessment Note</Label>
-                <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
-                  {e.note ?? "This volunteer didn't left any note."}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))}
         </>
       )}
     </div>
   );
 
   const renderVolunteerContent = (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 text-sm ">
       {selectedVolunteer && (
         <>
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
-              <AvatarFallback>
+              <AvatarFallback className=" bg-primary text-white">
                 {selectedVolunteer.firstName[0]}
                 {selectedVolunteer.lastName[0]}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-semibold">{selectedVolunteer.firstName} {selectedVolunteer.lastName}</p>
+              <p className="font-semibold">
+                {selectedVolunteer.firstName} {selectedVolunteer.lastName}
+              </p>
               <p className="text-xs text-muted-foreground">
-                {licenses.find(l => l.userId === selectedVolunteer.userId)?.specialization}
+                {
+                  licenses.find((l) => l.userId === selectedVolunteer.userId)
+                    ?.specialization
+                }
               </p>
             </div>
           </div>
@@ -201,16 +271,24 @@ export default function LGUDashboard() {
           </div>
 
           <div>
-            <Label className="text-xs text-muted-foreground">License Document</Label>
+            <Label className="text-xs text-muted-foreground">
+              License Document
+            </Label>
             <div className="mt-1 border border-border rounded p-3 bg-muted flex flex-col gap-2">
-              {licenses.filter(l => l.userId === selectedVolunteer.userId).map(l => (
-                <img
-                  key={l.licenseId}
-                  src={typeof l.licenseImage === "string" ? l.licenseImage : URL.createObjectURL(l.licenseImage)}
-                  alt="License Preview"
-                  className="h-32 w-32 object-contain rounded border"
-                />
-              ))}
+              {licenses
+                .filter((l) => l.userId === selectedVolunteer.userId)
+                .map((l) => (
+                  <img
+                    key={l.licenseId}
+                    src={
+                      typeof l.licenseImage === "string"
+                        ? l.licenseImage
+                        : URL.createObjectURL(l.licenseImage)
+                    }
+                    alt="License Preview"
+                    className="h-32 w-32 object-contain rounded border"
+                  />
+                ))}
             </div>
           </div>
         </>
@@ -220,7 +298,11 @@ export default function LGUDashboard() {
 
   const renderConfirmationContent = (
     <div className="flex flex-col sm:flex-row gap-2">
-      <Button disabled={loading} variant="outline" onClick={() => setConfirmVolunteerDialog(false)}>
+      <Button
+        disabled={loading}
+        variant="outline"
+        onClick={() => setConfirmVolunteerDialog(false)}
+      >
         {loading && <Loader2 className="animate-spin h-3 w-3 mr-1" />}
         Cancel
       </Button>
@@ -231,9 +313,15 @@ export default function LGUDashboard() {
             ? "bg-primary hover:bg-primary/90 text-primary-foreground"
             : "bg-destructive/80 hover:bg-destructive/90 text-destructive-foreground"
         }
-        onClick={() => handleVolunteerAction(selectedVolunteer!.userId, confirmAction!)}
+        onClick={() =>
+          handleVolunteerAction(selectedVolunteer!.userId, confirmAction!)
+        }
       >
-        {confirmAction === "approve" ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+        {confirmAction === "approve" ? (
+          <CheckCircle className="h-3 w-3 mr-1" />
+        ) : (
+          <XCircle className="h-3 w-3 mr-1" />
+        )}
         {confirmAction === "approve" ? "Confirm Approve" : "Confirm Reject"}
       </Button>
     </div>
@@ -241,51 +329,123 @@ export default function LGUDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
       <div className="flex">
         <div className="md:pl-64 flex flex-col flex-1 w-full">
-          <Navbar searchTerm={searchTerm} setSearchTerm={setSearchTerm} setSidebarOpen={setSidebarOpen} />
+          <Navbar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            setSidebarOpen={setSidebarOpen}
+          />
           <main className="flex-1 p-4 sm:p-6 w-full">
-            <MobileSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-            {activeTab === "overview" && <OverviewTab licenses={licenses} requests={requests} volunteers={users} onViewRequest={handleViewRequest} onViewVolunteer={handleViewVolunteer} setActiveTab={setActiveTab} />}
-            {activeTab === "requests" && <RequestsTab filteredRequests={filteredRequests} searchTerm={searchTerm} setSearchTerm={setSearchTerm} onViewRequest={handleViewRequest} />}
-            {activeTab === "volunteers" && <VolunteersTab licenses={licenses} volunteers={users} pendingVolunteers={pendingVolunteers} approvedVolunteers={approvedVolunteers} onViewVolunteer={handleViewVolunteer} />}
+            <MobileSearch
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+            />
+            {activeTab === "overview" && (
+              <OverviewTab
+                licenses={licenses}
+                requests={requests}
+                volunteers={users}
+                onViewRequest={handleViewRequest}
+                onViewVolunteer={handleViewVolunteer}
+                setActiveTab={setActiveTab}
+              />
+            )}
+            {activeTab === "requests" && (
+              <RequestsTab
+                filteredRequests={filteredRequests}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                onViewRequest={handleViewRequest}
+              />
+            )}
+            {activeTab === "volunteers" && (
+              <VolunteersTab
+                licenses={licenses}
+                volunteers={users}
+                pendingVolunteers={pendingVolunteers}
+                approvedVolunteers={approvedVolunteers}
+                onViewVolunteer={handleViewVolunteer}
+              />
+            )}
           </main>
         </div>
       </div>
 
       {/* Request Dialog/Drawer */}
       {isDesktop ? (
-        <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+        <Dialog
+          open={isRequestDialogOpen}
+          onOpenChange={setIsRequestDialogOpen}
+        >
           <DialogContent className="max-w-md w-[90vw] p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>Safety Request</DialogTitle>
-              <DialogDescription>Review and update house evaluation request</DialogDescription>
+              <DialogDescription>
+                Review and update house evaluation request
+              </DialogDescription>
             </DialogHeader>
             {renderRequestContent}
             <DialogFooter className="pt-4 flex gap-2">
               {!selectedRequest?.volunteerId && (
                 <>
-                  <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>Cancel</Button>
-                  <Button disabled={!assignedVolunteer || assignedVolunteer === "0"} onClick={() => handleUpdateRequest(selectedRequest?.requestId || 0)}>Update</Button>
+                  <Button
+                    disabled={loading}
+                    variant="outline"
+                    onClick={() => setIsRequestDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={!assignedVolunteer || assignedVolunteer === "0" || loading}
+                    onClick={() =>
+                      handleUpdateRequest(selectedRequest?.requestId || 0)
+                    }
+                  >
+                    Update
+                  </Button>
                 </>
               )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
       ) : (
-        <Drawer open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
-          <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh]">
+        <Drawer
+          open={isRequestDialogOpen}
+          onOpenChange={setIsRequestDialogOpen}
+        >
+          <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh] p-4">
             <DrawerHeader>
               <DrawerTitle>Safety Request</DrawerTitle>
-              <DrawerDescription>Review and update house evaluation request</DrawerDescription>
+              <DrawerDescription>
+                Review and update house evaluation request
+              </DrawerDescription>
             </DrawerHeader>
             {renderRequestContent}
             <DrawerFooter className="pt-4 flex gap-2">
               {!selectedRequest?.volunteerId && (
                 <>
-                  <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>Cancel</Button>
-                  <Button disabled={!assignedVolunteer || assignedVolunteer === "0"} onClick={() => handleUpdateRequest(selectedRequest?.requestId || 0)}>Update</Button>
+                  <Button
+                    disabled={loading}
+                    variant="outline"
+                    onClick={() => setIsRequestDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={!assignedVolunteer || assignedVolunteer === "0" || loading}
+                    onClick={() =>
+                      handleUpdateRequest(selectedRequest?.requestId || 0)
+                    }
+                  >
+                    Update
+                  </Button>
                 </>
               )}
             </DrawerFooter>
@@ -295,36 +455,94 @@ export default function LGUDashboard() {
 
       {/* Volunteer Dialog/Drawer */}
       {isDesktop ? (
-        <Dialog open={isVolunteerDialogOpen} onOpenChange={setIsVolunteerDialogOpen}>
+        <Dialog
+          open={isVolunteerDialogOpen}
+          onOpenChange={setIsVolunteerDialogOpen}
+        >
           <DialogContent className="max-w-md w-[90vw] p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>Volunteer Review</DialogTitle>
-              <DialogDescription>Verify license and specialization</DialogDescription>
+              <DialogDescription>
+                Verify license and specialization
+              </DialogDescription>
             </DialogHeader>
             {renderVolunteerContent}
             <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
-              {licenses.find(l => !l.isVerified && !l.isRejected && selectedVolunteer?.userId === l.userId) && (
+              {licenses.find(
+                (l) =>
+                  !l.isVerified &&
+                  !l.isRejected &&
+                  selectedVolunteer?.userId === l.userId
+              ) && (
                 <>
-                  <Button disabled={loading} variant="outline" onClick={() => { setConfirmAction("reject"); setConfirmVolunteerDialog(true); }} className="text-destructive border-destructive/30 hover:bg-destructive/10"><XCircle className="h-3 w-3 mr-1" /> Reject</Button>
-                  <Button disabled={loading} onClick={() => { setConfirmAction("approve"); setConfirmVolunteerDialog(true); }} className="bg-primary hover:bg-primary/90 text-primary-foreground"><CheckCircle className="h-3 w-3 mr-1" /> Approve</Button>
+                  <Button
+                    disabled={loading}
+                    variant="outline"
+                    onClick={() => {
+                      setConfirmAction("reject");
+                      setConfirmVolunteerDialog(true);
+                    }}
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    <XCircle className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                  <Button
+                    disabled={loading}
+                    onClick={() => {
+                      setConfirmAction("approve");
+                      setConfirmVolunteerDialog(true);
+                    }}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                  </Button>
                 </>
               )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
       ) : (
-        <Drawer open={isVolunteerDialogOpen} onOpenChange={setIsVolunteerDialogOpen}>
-          <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh]">
+        <Drawer
+          open={isVolunteerDialogOpen}
+          onOpenChange={setIsVolunteerDialogOpen}
+        >
+          <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh] p-4">
             <DrawerHeader>
               <DrawerTitle>Volunteer Review</DrawerTitle>
-              <DrawerDescription>Verify license and specialization</DrawerDescription>
+              <DrawerDescription>
+                Verify license and specialization
+              </DrawerDescription>
             </DrawerHeader>
             {renderVolunteerContent}
             <DrawerFooter className="pt-4 flex flex-col sm:flex-row gap-2">
-              {licenses.find(l => !l.isVerified && !l.isRejected && selectedVolunteer?.userId === l.userId) && (
+              {licenses.find(
+                (l) =>
+                  !l.isVerified &&
+                  !l.isRejected &&
+                  selectedVolunteer?.userId === l.userId
+              ) && (
                 <>
-                  <Button disabled={loading} variant="outline" onClick={() => { setConfirmAction("reject"); setConfirmVolunteerDialog(true); }} className="text-destructive border-destructive/30 hover:bg-destructive/10"><XCircle className="h-3 w-3 mr-1" /> Reject</Button>
-                  <Button disabled={loading} onClick={() => { setConfirmAction("approve"); setConfirmVolunteerDialog(true); }} className="bg-primary hover:bg-primary/90 text-primary-foreground"><CheckCircle className="h-3 w-3 mr-1" /> Approve</Button>
+                  <Button
+                    disabled={loading}
+                    variant="outline"
+                    onClick={() => {
+                      setConfirmAction("reject");
+                      setConfirmVolunteerDialog(true);
+                    }}
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    <XCircle className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                  <Button
+                    disabled={loading}
+                    onClick={() => {
+                      setConfirmAction("approve");
+                      setConfirmVolunteerDialog(true);
+                    }}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                  </Button>
                 </>
               )}
             </DrawerFooter>
@@ -334,21 +552,43 @@ export default function LGUDashboard() {
 
       {/* Confirmation Dialog/Drawer */}
       {isDesktop ? (
-        <Dialog open={confirmVolunteerDialog} onOpenChange={setConfirmVolunteerDialog}>
+        <Dialog
+          open={confirmVolunteerDialog}
+          onOpenChange={setConfirmVolunteerDialog}
+        >
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>{confirmAction === "approve" ? "Approve Volunteer?" : "Reject Volunteer?"}</DialogTitle>
-              <DialogDescription>{confirmAction === "approve" ? "This will approve the volunteer and grant access to the system." : "This will reject the volunteer’s application permanently."}</DialogDescription>
+              <DialogTitle>
+                {confirmAction === "approve"
+                  ? "Approve Volunteer?"
+                  : "Reject Volunteer?"}
+              </DialogTitle>
+              <DialogDescription>
+                {confirmAction === "approve"
+                  ? "This will approve the volunteer and grant access to the system."
+                  : "This will reject the volunteer’s application permanently."}
+              </DialogDescription>
             </DialogHeader>
             <DialogFooter>{renderConfirmationContent}</DialogFooter>
           </DialogContent>
         </Dialog>
       ) : (
-        <Drawer open={confirmVolunteerDialog} onOpenChange={setConfirmVolunteerDialog}>
+        <Drawer
+          open={confirmVolunteerDialog}
+          onOpenChange={setConfirmVolunteerDialog}
+        >
           <DrawerContent className="h-[40dvh] max-h-[40dvh] min-h-[30dvh]">
             <DrawerHeader>
-              <DrawerTitle>{confirmAction === "approve" ? "Approve Volunteer?" : "Reject Volunteer?"}</DrawerTitle>
-              <DrawerDescription>{confirmAction === "approve" ? "This will approve the volunteer and grant access to the system." : "This will reject the volunteer’s application permanently."}</DrawerDescription>
+              <DrawerTitle>
+                {confirmAction === "approve"
+                  ? "Approve Volunteer?"
+                  : "Reject Volunteer?"}
+              </DrawerTitle>
+              <DrawerDescription>
+                {confirmAction === "approve"
+                  ? "This will approve the volunteer and grant access to the system."
+                  : "This will reject the volunteer’s application permanently."}
+              </DrawerDescription>
             </DrawerHeader>
             <DrawerFooter>{renderConfirmationContent}</DrawerFooter>
           </DrawerContent>
@@ -359,26 +599,45 @@ export default function LGUDashboard() {
       {isDesktop ? (
         <Dialog open={openMap} onOpenChange={setOpenMap}>
           <DialogContent className="md:max-w-[47.5rem] space-y-4">
-            <DialogHeader>
-              <DialogTitle>Select Property Location</DialogTitle>
-              <DialogDescription>Click on the map to select your property location or use current location</DialogDescription>
-            </DialogHeader>
-            <MapView latitude={selectedRequest?.latitude?.toString() || ""} longitude={selectedRequest?.longitude?.toString() || ""} />
+            
+            <MapView
+              latitude={selectedRequest?.latitude?.toString() || ""}
+              longitude={selectedRequest?.longitude?.toString() || ""}
+            />
             <DialogFooter>
-              <Button size="lg" className="w-full" onClick={() => setOpenMap(false)}>Done</Button>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => setOpenMap(false)}
+              >
+                Done
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       ) : (
         <Drawer open={openMap} onOpenChange={setOpenMap}>
           <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh]">
-            <DrawerHeader>
-              <DrawerTitle>Select Property Location</DrawerTitle>
-              <DrawerDescription>Click on the map to select your property location or use current location</DrawerDescription>
-            </DrawerHeader>
-            <MapView latitude={selectedRequest?.latitude?.toString() || ""} longitude={selectedRequest?.longitude?.toString() || ""} />
+           
+            <div
+              className="flex-1 overflow-hidden"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
+              <MapView
+                latitude={selectedRequest?.latitude?.toString() || ""}
+                longitude={selectedRequest?.longitude?.toString() || ""}
+              />
+            </div>
             <DrawerFooter className="pt-4 mb-8">
-              <Button size="lg" className="w-full" onClick={() => setOpenMap(false)}>Done</Button>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => setOpenMap(false)}
+              >
+                Done
+              </Button>
             </DrawerFooter>
           </DrawerContent>
         </Drawer>

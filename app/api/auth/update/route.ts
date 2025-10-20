@@ -12,10 +12,8 @@ export const config = { api: { bodyParser: false } };
 
 export async function PUT(req: NextRequest) {
   try {
-    console.log("=== PROFILE UPDATE START ===");
 
     const { userId } = await authenticateToken(req);
-    console.log("Authenticated userId:", userId);
     if (!userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -27,37 +25,24 @@ export async function PUT(req: NextRequest) {
     const confirmPassword = formData.get("confirmPassword")?.toString() || "";
     const licenseFile = formData.get("licenseImage") as File | null;
 
-    console.log("Received form data:", {
-      firstName,
-      lastName,
-      currentPassword: !!currentPassword,
-      newPassword: !!newPassword,
-      confirmPassword: !!confirmPassword,
-      hasLicenseFile: !!licenseFile,
-    });
-
+   
     const [u] = await db.select().from(user).where(eq(user.userId, userId));
-    console.log("Fetched user:", u ? "Found" : "Not found");
     if (!u)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     if (currentPassword || newPassword || confirmPassword) {
-      console.log("Password update requested");
 
       if (!currentPassword) {
-        console.warn("Missing current password");
         return NextResponse.json(
           { error: "Please enter your current password" },
           { status: 400 }
         );
       } else if (!newPassword) {
-        console.warn("Missing new password");
         return NextResponse.json(
           { error: "Please enter a new password" },
           { status: 400 }
         );
       } else if (!confirmPassword) {
-        console.warn("Missing confirm password");
         return NextResponse.json(
           { error: "Please re-enter your new password" },
           { status: 400 }
@@ -65,7 +50,6 @@ export async function PUT(req: NextRequest) {
       }
 
       const valid = await bcryptjs.compare(currentPassword, u.passwordHash);
-      console.log("Password valid:", valid);
 
       if (!valid)
         return NextResponse.json(
@@ -74,7 +58,6 @@ export async function PUT(req: NextRequest) {
         );
 
       if (newPassword !== confirmPassword) {
-        console.warn("Passwords do not match");
         return NextResponse.json(
           { error: "Passwords do not match" },
           { status: 400 }
@@ -86,10 +69,8 @@ export async function PUT(req: NextRequest) {
         .update(user)
         .set({ passwordHash: hashed })
         .where(eq(user.userId, userId));
-      console.log("Password updated successfully");
     }
 
-    console.log("Updating user profile...");
     const updatedUser = await db
       .update(user)
       .set({
@@ -98,37 +79,30 @@ export async function PUT(req: NextRequest) {
       })
       .where(eq(user.userId, userId))
       .returning();
-    console.log("User updated:", updatedUser[0]);
 
     if (licenseFile) {
-      console.log("License image upload detected:", licenseFile.name);
 
       const uploadDir = path.join(process.cwd(), "/public/uploads/license");
       if (!fs.existsSync(uploadDir)) {
-        console.log("Creating upload directory:", uploadDir);
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
       const ext = path.extname(licenseFile.name);
       const fileName = `${Date.now()}${ext}`;
       const filePath = path.join(uploadDir, fileName);
-      console.log("Saving license image:", filePath);
 
       const buffer = Buffer.from(await licenseFile.arrayBuffer());
       fs.writeFileSync(filePath, buffer);
 
       const licensePath = `/uploads/license/${fileName}`;
-      console.log("Stored license path:", licensePath);
 
       const updatedLicense = await db
         .update(license)
         .set({ licenseImage: licensePath, isRejected: false })
         .where(eq(license.userId, userId))
         .returning();
-      console.log("License record updated:", updatedLicense[0]);
 
-      console.log("=== PROFILE UPDATE SUCCESS (WITH LICENSE) ===");
-      return NextResponse.json(
+        return NextResponse.json(
         {
           message: "Profile updated successfully",
           user: {
@@ -143,7 +117,6 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    console.log("=== PROFILE UPDATE SUCCESS (NO LICENSE) ===");
     return NextResponse.json(
       {
         message: "Profile updated successfully",
@@ -156,8 +129,7 @@ export async function PUT(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (e) {
-    console.error("Profile update error:", e);
+  } catch {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

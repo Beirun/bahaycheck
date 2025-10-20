@@ -12,10 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Eye } from "lucide-react";
+import { Eye, PackageOpen } from "lucide-react";
 import { User } from "@/models/user";
 import { License } from "@/models/license";
-
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 
 interface VolunteerViewProps {
   licenses: License[];
@@ -28,15 +28,17 @@ export default function VolunteerView({
   volunteers,
   onViewVolunteer,
 }: VolunteerViewProps) {
-  const currentVolunteers = volunteers.map((l) => {
-    const volunteer = licenses.find(
-      (v) => l.userId === v.userId
-    );
-    return {
-      ...volunteer,
-      ...l,
-    };
-  }).filter(c => c.isRejected === false || !c.isVerified);
+  const currentVolunteers = volunteers
+    .map((l) => {
+      const volunteer = licenses.find((v) => l.userId === v.userId);
+      return {
+        ...volunteer,
+        ...l,
+        isVerified: volunteer?.isVerified,
+      };
+    })
+    .filter((c) => c.roleId !== 3 && c.isRejected === false && !c.isVerified);
+
   const getStatusBadge = (isVerified: boolean) => {
     const status = isVerified ? "Approved" : "Pending";
     const variants: Record<string, string> = {
@@ -50,6 +52,22 @@ export default function VolunteerView({
       </Badge>
     );
   };
+
+  if (currentVolunteers.length === 0) {
+    return (
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <PackageOpen />
+          </EmptyMedia>
+          <EmptyTitle>No Volunteers In This Section</EmptyTitle>
+          <EmptyDescription>
+            There are currently no pending volunteers that need license verification.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
 
   return (
     <>
@@ -146,7 +164,6 @@ export default function VolunteerView({
           >
             <CardContent>
               <div className="flex h-full gap-4 items-center">
-                {/* Top Section: Avatar and Name */}
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                     {(volunteer.firstName ?? "U")[0]}
@@ -168,12 +185,6 @@ export default function VolunteerView({
                     </div>
                   </div>
 
-                  {/* Middle Section: License Info
-      <div className="mb-4">
-          <Button>View License</Button>
-      </div> */}
-
-                  {/* Bottom Section: Contact and Date - Aligned horizontally */}
                   <div className="w-full mt-auto grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <p className="text-card-foreground truncate">

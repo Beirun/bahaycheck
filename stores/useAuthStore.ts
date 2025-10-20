@@ -41,9 +41,7 @@ export interface AuthState {
   setUser: (u: User | null) => Promise<void>;
   setToken: (t: string | null) => Promise<void>;
   handleTokenExpiry: () => void;
-
 }
-
 
 const STORAGE_USER = "auth_user";
 const STORAGE_TOKEN = "auth_token";
@@ -250,43 +248,38 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
     update: async (formData: FormData) => {
-  try {
-    set({ loading: true });
-    const res = await apiFetch("/api/auth/update", {
-      method: "PUT",
-      body: formData,
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Profile update failed");
-    console.log("u data",data)
-    if (data.message)
-      console.log('message',data.message)
-      useToastStore.getState().setPending("success", data.message);
+      try {
+        set({ loading: true });
+        const res = await apiFetch("/api/auth/update", {
+          method: "PUT",
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Profile update failed");
+        useToastStore.getState().setPending("success", data.message);
 
-    // Refresh user info if backend returns updated user data
-    if (data.user) {
-      set({ user: data.user });
-      localStorage.setItem(
-        STORAGE_USER,
-        await encrypt(JSON.stringify(data.user))
-      );
-    } 
-    if(data.license){
-      useVolunteerStore.getState().setLicense(data.license)
-    }
+        // Refresh user info if backend returns updated user data
+        if (data.user) {
+          set({ user: data.user });
+          localStorage.setItem(
+            STORAGE_USER,
+            await encrypt(JSON.stringify(data.user))
+          );
+        }
+        if (data.license) {
+          useVolunteerStore.getState().setLicense(data.license);
+        }
 
-    return true;
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Unknown error";
-    useToastStore.getState().setError(true);
-    useToastStore.getState().setPending("error", message);
-    return false;
-  } finally {
-    set({ loading: false });
-  }
-},
-
-
+        return true;
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Unknown error";
+        useToastStore.getState().setError(true);
+        useToastStore.getState().setPending("error", message);
+        return false;
+      } finally {
+        set({ loading: false });
+      }
+    },
 
     logout: async (router) => {
       set({ loading: true });
@@ -357,7 +350,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (typeof window !== "undefined") {
         window.location.replace("/signin");
       }
-      
+
       useToastStore.getState().setError(true);
       useToastStore
         .getState()
