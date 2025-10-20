@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) throw new Error("Missing JWT_SECRET in .env");
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const cookie = req.headers.get("cookie");
     if (!cookie)
