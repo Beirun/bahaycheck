@@ -1,8 +1,8 @@
-"use client";
 import AuthInit from "./providers/AuthInit"
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import type { Metadata } from "next";
 
 
 const geistSans = Geist({
@@ -14,7 +14,10 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
+export const metadata: Metadata = {
+  title: "BahayCheck",
+  description: "",
+};
 export default function RootLayout({
   children,
 }: Readonly<{
