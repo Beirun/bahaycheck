@@ -7,9 +7,8 @@ import path from "path";
 import fs from "fs";
 import { eq } from "drizzle-orm";
 import { license } from "@/schema/license";
-import HttpSms from "httpsms";
+import { generate6DigitCode, sendSMS } from "@/utils/sms";
 
-const client = new HttpSms(process.env.HTTPSMS_API_KEY!);
 
 export const config = { api: { bodyParser: false } };
 
@@ -110,8 +109,8 @@ export async function POST(req: NextRequest) {
       expiresAt: expiresAt,
       isUsed: false,
     });
-
-    await sendSMS(phoneNumber,verificationCode)
+    
+    await sendSMS(phoneNumber, `Your verification code is: ${verificationCode}`)
 
     return NextResponse.json({
       message: "A verification code has been sent to your phone.",
@@ -124,31 +123,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-const sendSMS = async (phoneNumber: string, verificationCode: string) => {
-
-  await client.messages
-    .postSend({
-      content:  `Your verification code is: ${verificationCode}`,
-      from: "+639329413158",
-      encrypted: false,
-      to: phoneNumber.startsWith("+639")
-        ? phoneNumber
-        : phoneNumber.startsWith("09")
-        ? `+63${phoneNumber.slice(1)}`
-        : `+${phoneNumber}`,
-    })
-    .then((message) => {
-      console.log('message',message.id);
-    })
-    .catch((err) => {
-      console.error('error',err);
-    });
-};
-
-
-
-function generate6DigitCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 }

@@ -6,9 +6,7 @@ import { user } from "@/schema/user";
 import { and, eq, isNull } from "drizzle-orm";
 import { role } from "@/schema/role";
 import { code } from "@/schema/code";
-import HttpSms from "httpsms";
-
-const client = new HttpSms(process.env.HTTPSMS_API_KEY!);
+import { generate6DigitCode, sendSMS } from "@/utils/sms";
 const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) throw new Error("Missing JWT_SECRET in .env");
 
@@ -47,14 +45,14 @@ export async function POST(req: NextRequest) {
             isUsed: false,
           });
       
-          await sendSMS(phone,verificationCode)
+          await sendSMS(phone, `Your verification code is: ${verificationCode}`)
       return NextResponse.json({ message: "Please verify your phone number. We sent a new verification code to your phone", isVerified: u.user.isVerified });
     }
       // Generate tokens
     const accessToken = jwt.sign(
       { userId: u.user.userId, role: u.role?.roleName, phone: u.user.phoneNumber },
       JWT_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "1h" }
     );
     const refreshToken = jwt.sign(
       { userId: u.user.userId },
@@ -84,31 +82,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-
-
-const sendSMS = async (phoneNumber: string, verificationCode: string) => {
-
-  await client.messages
-    .postSend({
-      content:  `Your verification code is: ${verificationCode}`,
-      from: "+639329413158",
-      encrypted: false,
-      to: phoneNumber.startsWith("+639")
-        ? phoneNumber
-        : phoneNumber.startsWith("09")
-        ? `+63${phoneNumber.slice(1)}`
-        : `+${phoneNumber}`,
-    })
-    .then((message) => {
-      console.log('message',message.id);
-    })
-    .catch((err) => {
-      console.error('error',err);
-    });
-};
-
-
-
-function generate6DigitCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}

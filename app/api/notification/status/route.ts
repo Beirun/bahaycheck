@@ -3,6 +3,8 @@ import { db } from "@/db/drizzle";
 import { notification } from "@/schema/notification";
 import { eq } from "drizzle-orm";
 
+
+// api/notification/status
 export async function PUT(req: NextRequest) {
   try {
     const { notificationId, status } = await req.json(); 

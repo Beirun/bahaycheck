@@ -13,7 +13,8 @@ export const config = {
 // api/volunteer/license
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await authenticateToken(req);
+    const { userId, error } = await authenticateToken(req);
+    if(error) return error;
     const record = await db
       .select()
       .from(license)

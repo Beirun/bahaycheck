@@ -13,5 +13,6 @@ export const request = pgTable('request', {
   volunteerId: integer('volunteer_id').references(() => user.userId),
   dateCreated: timestamp('date_created', { withTimezone: true }).notNull(),
   dateUpdated: timestamp('date_updated', { withTimezone: true }),
-  dateDeleted: timestamp('date_deleted', { withTimezone: true })
+  dateDeleted: timestamp('date_deleted', { withTimezone: true }),
+  dateAssigned: timestamp('date_assigned', { withTimezone: true })
 });

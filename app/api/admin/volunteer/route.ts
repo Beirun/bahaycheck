@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { eq } from "drizzle-orm";
 import { license } from "@/schema/license";
+import { sendSMS } from "@/utils/sms";
+import { user } from "@/schema/user";
 
 export const config = {
   api: {
@@ -12,19 +14,20 @@ export const config = {
 // api/admin/volunteer
 export async function PUT(req: NextRequest) {
   try {
-    const { licenseId } = await req.json();
-    if (isNaN(licenseId)) return NextResponse.json({ error: "Invalid request ID" }, { status: 400 });
+    const { userId } = await req.json();
+    if (isNaN(userId)) return NextResponse.json({ error: "Invalid request ID" }, { status: 400 });
 
-    const record = await db.select().from(license).where(eq(license.licenseId, licenseId)).limit(1);
+    const record = await db.select({phoneNumber: user.phoneNumber}).from(license).innerJoin(user,eq(license.userId,user.userId)).where(eq(license.userId, userId)).limit(1);
     if (!record[0]) return NextResponse.json({ error: "Request not found" }, { status: 404 });
 
 
     const updated = await db
       .update(license)
       .set({isVerified : true})
-      .where(eq(license.licenseId, licenseId))
+      .where(eq(license.userId, userId))
       .returning();
-
+    
+    await sendSMS(record[0].phoneNumber,"Your license has been verified. Please check your account.")
     return NextResponse.json({ message: "Volunteer successfully verified", license: updated[0] });
   } catch (e) {
     console.error(e);

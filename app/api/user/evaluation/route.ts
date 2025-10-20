@@ -13,10 +13,11 @@ export const config = {
   },
 };
 
-// api/admin/evaluation
+// api/user/evaluation
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await authenticateToken(req);
+    const { userId, error } = await authenticateToken(req);
+    if(error) return error;
     const records = await db
       .select({
         evaluationId: evaluation.evaluationId,

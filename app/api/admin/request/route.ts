@@ -4,11 +4,13 @@ import { request } from "@/schema/request";
 import { eq, desc } from "drizzle-orm";
 import { user } from '@/schema/user'
 import { requestStatus } from "@/schema/requestStatus";
+import { alias } from "drizzle-orm/pg-core";
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+const volunteer = alias(user, "volunteer");
 
 // api/admin/request
 export async function GET(req: NextRequest) {
@@ -24,13 +26,21 @@ export async function GET(req: NextRequest) {
         latitude: request.latitude,
         dateCreated: request.dateCreated,
         dateUpdated: request.dateUpdated,
+        dateAssigned: request.dateAssigned,
         firstName: user.firstName,
         lastName: user.lastName,
-        phoneNumber: user.phoneNumber
+        phoneNumber: user.phoneNumber,
+        volunteerId: request.volunteerId,
+        
+
+        volunteerFirstName: volunteer.firstName,
+        volunteerLastName: volunteer.lastName,
       })
       .from(request)
       .innerJoin(requestStatus,eq(requestStatus.requestStatusId, request.requestStatusId))
       .leftJoin(user, eq(user.userId, request.userId))
+            .leftJoin(volunteer, eq(volunteer.userId, request.volunteerId))
+
       .orderBy(desc(request.dateUpdated));
 
     const host = req.nextUrl.origin; // e.g., https://example.com
@@ -38,6 +48,10 @@ export async function GET(req: NextRequest) {
       ...r,
       requestImage: r.requestImage ? `${host}${r.requestImage}` : null,
       userName: `${r.firstName} ${r.lastName}`,
+      volunteerName:
+        r.volunteerFirstName && r.volunteerLastName
+          ? `${r.volunteerFirstName} ${r.volunteerLastName}`
+          : null,
     }));
 
     return NextResponse.json({ requests: mappedRequests });
