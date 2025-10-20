@@ -204,7 +204,7 @@ export default function RequestForm({ userRequestsData, setSelectedRequest }: Re
     <div className="min-h-[calc(100vh-4rem)] w-screen bg-background p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
         {/* Conditional: Completed Requests */}
-        {userRequestsData.filter((req) => req.requestStatus.toLowerCase() === "completed")
+        {userRequestsData && userRequestsData.filter((req) => req.requestStatus.toLowerCase() === "completed")
           .length > 0 && (
           <>
             {isDesktop ? (
@@ -356,6 +356,7 @@ export default function RequestForm({ userRequestsData, setSelectedRequest }: Re
                 location
               </DialogDescription>
             </DialogHeader>
+            
             <Map
               latitude={formData.latitude}
               longitude={formData.longitude}
@@ -388,6 +389,13 @@ export default function RequestForm({ userRequestsData, setSelectedRequest }: Re
                 location
               </DrawerDescription>
             </DrawerHeader>
+            <div
+              className="flex-1 overflow-hidden"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
+            
             <Map
               latitude={formData.latitude}
               longitude={formData.longitude}
@@ -398,7 +406,8 @@ export default function RequestForm({ userRequestsData, setSelectedRequest }: Re
                   longitude: lng,
                 }))
               }
-            />{" "}
+              />
+              </div>
             <DrawerFooter className="pt-4 mb-8">
               <Button
                 size="lg"

@@ -11,12 +11,8 @@ if (accessToken) {
   headers.set('Authorization', `Bearer ${accessToken}`);
   options.headers = headers;
 
-  console.log('Headers:', Object.fromEntries(headers.entries()));
 }
 
-
-  console.log('token', accessToken);
-  console.log('options', options);
   let res = await fetch(url, {
     ...options,
     credentials: "include",

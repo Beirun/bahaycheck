@@ -182,17 +182,18 @@ export default function UserPage() {
       {isDesktop ? (
         <Dialog open={openMap} onOpenChange={setOpenMap}>
           <DialogContent className="md:max-w-[47.5rem] space-y-4">
-            <DialogHeader>
-              <DialogTitle>Select Property Location</DialogTitle>
-              <DialogDescription>
-                Click on the map to select your property location or use current
-                location
-              </DialogDescription>
-            </DialogHeader>
-            <MapView
-              latitude={activeRequest?.latitude?.toString() || ""}
-              longitude={activeRequest?.longitude?.toString() || ""}
-            />
+            
+            <div
+              className="flex-1 overflow-hidden"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
+              <MapView
+                latitude={selectedRequest?.latitude?.toString() || ""}
+                longitude={selectedRequest?.longitude?.toString() || ""}
+              />
+            </div>
             <DialogFooter>
               <Button
                 size="lg"
@@ -207,17 +208,17 @@ export default function UserPage() {
       ) : (
         <Drawer open={openMap} onOpenChange={setOpenMap}>
           <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh]">
-            <DrawerHeader>
-              <DrawerTitle>Select Property Location</DrawerTitle>
-              <DrawerDescription>
-                Click on the map to select your property location or use current
-                location
-              </DrawerDescription>
-            </DrawerHeader>
-            <MapView
-              latitude={activeRequest?.latitude?.toString() || ""}
-              longitude={activeRequest?.longitude?.toString() || ""}
-            />
+            <div
+              className="flex-1 overflow-hidden"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
+              <MapView
+                latitude={selectedRequest?.latitude?.toString() || ""}
+                longitude={selectedRequest?.longitude?.toString() || ""}
+              />
+            </div>
 
             <DrawerFooter className="pt-4 mb-8">
               <Button
@@ -231,89 +232,92 @@ export default function UserPage() {
           </DrawerContent>
         </Drawer>
       )}
-      <Dialog
-        open={!!selectedRequest}
-        onOpenChange={() => setSelectedRequest(null)}
-      >
-        <DialogContent className="max-w-md w-[90vw] p-4 sm:p-6">
-          {selectedRequest && (
-            <>
-              <DialogHeader className="pb-4">
-                <DialogTitle className="text-lg sm:text-xl text-card-foreground">
-                  House Safety Assessment
-                </DialogTitle>
-                <DialogDescription className="text-sm">
-                  Submit your evaluation and recommendations
-                </DialogDescription>
-              </DialogHeader>
+      {isDesktop ? (
+        <Dialog
+          open={!!selectedRequest}
+          onOpenChange={() => setSelectedRequest(null)}
+        >
+          <DialogContent className="max-w-md w-[90vw] p-4 sm:p-6">
+            {selectedRequest && (
+              <>
+                <DialogHeader className="pb-4">
+                  <DialogTitle className="text-lg sm:text-xl text-card-foreground">
+                    House Safety Assessment
+                  </DialogTitle>
+                  <DialogDescription className="text-sm">
+                    Submit your evaluation and recommendations
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Request ID
+                        </Label>
+                        <p className="font-medium text-card-foreground">
+                          {selectedRequest.requestId}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Citizen
+                        </Label>
+                        <p className="font-medium text-card-foreground space-x-2">
+                          {selectedRequest.userName}{" "}
+                          <span className="p-1 px-3 text-card-foreground/60 bg-gray-200 rounded-full w-fit">
+                            {selectedRequest.phoneNumber.substring(0, 4) +
+                              " " +
+                              selectedRequest.phoneNumber.substring(4, 7) +
+                              " " +
+                              selectedRequest.phoneNumber.substring(7)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
 
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">
-                        Request ID
+                        House Description
                       </Label>
-                      <p className="font-medium text-card-foreground">
-                        {selectedRequest.requestId}
+                      <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                        {selectedRequest.requestDetails}
                       </p>
                     </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      House Description
-                    </Label>
-                    <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
-                      {selectedRequest.requestDetails}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      House Image
-                    </Label>
-                    <div className="w-full flex justify-center border bg-gray-100">
-                      <img
-                        key={selectedRequest.requestId}
-                        src={selectedRequest.requestImage!}
-                        alt="License Preview"
-                        className="h-32 w-32 object-contain rounded border"
-                      />
+                    <div className="relative ">
+                      <div className="w-full h-35 overflow-hidden [mask-image:linear-gradient(to_top,transparent,black)] [--tw-mask-image:linear-gradient(to_top,transparent,black)]">
+                        <MapView
+                          useMarker={false}
+                          className="-mt-75 pointer-events-none"
+                          latitude={selectedRequest.latitude?.toString() || ""}
+                          longitude={
+                            selectedRequest.longitude?.toString() || ""
+                          }
+                          zoom={13}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => setOpenMap(true)}
+                        className="absolute right-1/2 translate-x-1/2 bottom-4"
+                      >
+                        View Map
+                      </Button>
                     </div>
                   </div>
-                  <div className="relative ">
-                    <div className="w-full h-35 overflow-hidden [mask-image:linear-gradient(to_top,transparent,black)] [--tw-mask-image:linear-gradient(to_top,transparent,black)]">
-                      <MapView
-                        useMarker={false}
-                        className="-mt-75 pointer-events-none"
-                        latitude={selectedRequest.latitude?.toString() || ""}
-                        longitude={selectedRequest.longitude?.toString() || ""}
-                        zoom={13}
-                      />
-                    </div>
-                    <Button
-                      onClick={() => setOpenMap(true)}
-                      className="absolute right-1/2 translate-x-1/2 bottom-4"
-                    >
-                      View Map
-                    </Button>
-                  </div>
-                </div>
-                {evaluations
-                  .filter((e) => e.requestId === selectedRequest.requestId)
-                  .map((e) => {
-                    return (
-                      <>
-                        <div key={e.requestId} className="w-full flex justify-center text-lg font-medium pt-4">
+                  {evaluations
+                    .filter((e) => e.requestId === selectedRequest.requestId)
+                    .map((e) => (
+                      <div key={e.requestId}>
+                        <div className="w-full flex justify-center text-lg font-medium pt-4">
                           Assessment Details
                         </div>
-                        <div>
+                        <div className="gap-2 py-4">
                           <Label className="text-xs text-muted-foreground">
                             Volunteer Name
                           </Label>
                           <div>{selectedRequest.volunteerName}</div>
                         </div>
-                        <div className="flex w-full gap-2">
+                        <div className="flex w-full gap-2 py-4">
                           <div className="space-y-2 w-1/2">
                             <Label className="text-xs text-muted-foreground">
                               Damage Category
@@ -327,7 +331,7 @@ export default function UserPage() {
                             <div>{e.houseCategory}</div>
                           </div>
                         </div>
-                        <div>
+                        <div className="gap-2 py-4">
                           <Label className="text-xs text-muted-foreground">
                             Assessment Note
                           </Label>
@@ -335,14 +339,116 @@ export default function UserPage() {
                             {e.note ?? "This volunteer didn't left any note."}
                           </p>
                         </div>
-                      </>
-                    );
-                  })}
+                      </div>
+                    ))}
+                </div>
+                =
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer
+          open={!!selectedRequest}
+          onOpenChange={() => setSelectedRequest(null)}
+        >
+          <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh] p-4">
+            {selectedRequest && (
+              <>
+                <DrawerHeader className="pb-4">
+                  <DrawerTitle className="text-lg sm:text-xl text-card-foreground">
+                    House Safety Assessment
+                  </DrawerTitle>
+                  <DrawerDescription className="text-sm">
+                    Submit your evaluation and recommendations
+                  </DrawerDescription>
+                </DrawerHeader>
+
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Request ID
+                        </Label>
+                        <p className="font-medium text-card-foreground">
+                          {selectedRequest.requestId}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        House Description
+                      </Label>
+                      <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                        {selectedRequest.requestDetails}
+                      </p>
+                    </div>
+                    <div className="relative ">
+                      <div className="w-full h-35 overflow-hidden [mask-image:linear-gradient(to_top,transparent,black)] [--tw-mask-image:linear-gradient(to_top,transparent,black)]">
+                        <MapView
+                          useMarker={false}
+                          className="-mt-75 pointer-events-none"
+                          latitude={selectedRequest.latitude?.toString() || ""}
+                          longitude={
+                            selectedRequest.longitude?.toString() || ""
+                          }
+                          zoom={13}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => setOpenMap(true)}
+                        className="absolute right-1/2 translate-x-1/2 bottom-4"
+                      >
+                        View Map
+                      </Button>
+                    </div>
+                  </div>
+
+                  {evaluations
+            .filter((e) => e.requestId === selectedRequest.requestId)
+            .map((e) => (
+              <div key={e.requestId}>
+                <div className="w-full flex justify-center text-lg font-medium pt-4">
+                  Assessment Details
+                </div>
+                <div className="gap-2 py-4">
+                  <Label className="text-xs text-muted-foreground">
+                    Volunteer Name
+                  </Label>
+                  <div>{selectedRequest.volunteerName}</div>
+                </div>
+                <div className="flex w-full gap-2 py-4">
+                  <div className="space-y-2 w-1/2">
+                    <Label className="text-xs text-muted-foreground">
+                      Damage Category
+                    </Label>
+                    <div>{e.damageCategory}</div>
+                  </div>
+                  <div className="space-y-2 w-1/2">
+                    <Label className="text-xs text-muted-foreground">
+                      House Category
+                    </Label>
+                    <div>{e.houseCategory}</div>
+                  </div>
+                </div>
+                <div className="gap-2 py-4">
+                  <Label className="text-xs text-muted-foreground">
+                    Assessment Note
+                  </Label>
+                  <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                    {e.note ?? "This volunteer didn't left any note."}
+                  </p>
+                </div>
               </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+            ))}
+                </div>
+              </>
+            )}
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }

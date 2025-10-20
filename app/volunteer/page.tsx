@@ -85,6 +85,7 @@ export default function VolunteerDashboard() {
   } = useVolunteerStore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [assessmentNote, setAssessmentNote] = useState("");
   const [houseCategoryId, setHouseCategoryId] = useState("");
@@ -102,11 +103,14 @@ export default function VolunteerDashboard() {
   };
 
   const handleUpdateStatus = async (requestId: number) => {
+    setIsSubmitting(true)
     const res = await updateRequestStatus(requestId);
     if (res) setSelectedRequest(null);
+    setIsSubmitting(false)
   };
 
   const handleCreateEvaluation = async () => {
+    setIsSubmitting(true)
     const data = {
       requestId: selectedRequest?.requestId ?? 0,
       houseCategoryId: Number(houseCategoryId),
@@ -120,6 +124,7 @@ export default function VolunteerDashboard() {
       setHouseCategoryId("");
       setAssessmentNote("");
     }
+    setIsSubmitting(false)
   };
 
   const getStatusBadge = (status: string) => {
@@ -407,7 +412,7 @@ export default function VolunteerDashboard() {
         </Card>
 
         {/* Assessment Dialog */}
-        <Dialog
+        {isDesktop ? (<Dialog
           open={!!selectedRequest}
           onOpenChange={() => setSelectedRequest(null)}
         >
@@ -595,6 +600,219 @@ export default function VolunteerDashboard() {
                       {selectedRequest.requestStatus.toLowerCase() ===
                         "in progress" && (
                         <Button
+                          disabled={isSubmitting}
+                          onClick={async () => await handleCreateEvaluation()}
+                          className="h-9 text-sm"
+                        >
+                          Submit Assessment
+                        </Button>
+                      )}
+                      {selectedRequest.requestStatus.toLowerCase() !==
+                        "in progress" && (
+                        <Button
+                          disabled={isSubmitting}
+                          onClick={async () =>
+                            await handleUpdateStatus(selectedRequest.requestId)
+                          }
+                          className="h-9 text-sm w-full sm:w-32"
+                        >
+                          Start Assessment
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>) : (<Drawer
+          open={!!selectedRequest}
+          onOpenChange={() => setSelectedRequest(null)}
+        >
+          <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh] p-4">
+            {selectedRequest && (
+              <>
+                <DrawerHeader className="pb-4">
+                  <DrawerTitle className="text-lg sm:text-xl text-card-foreground">
+                    House Safety Assessment
+                  </DrawerTitle>
+                  <DrawerDescription className="text-sm">
+                    Submit your evaluation and recommendations
+                  </DrawerDescription>
+                </DrawerHeader>
+
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Request ID
+                        </Label>
+                        <p className="font-medium text-card-foreground">
+                          {selectedRequest.requestId}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Citizen
+                        </Label>
+                        <p className="font-medium text-card-foreground space-x-2">
+                          {selectedRequest.userName}{" "}
+                          <span className="p-1 px-3 text-card-foreground/60 bg-gray-200 rounded-full w-fit">
+                            {selectedRequest.phoneNumber.substring(0, 4) +
+                              " " +
+                              selectedRequest.phoneNumber.substring(4, 7) +
+                              " " +
+                              selectedRequest.phoneNumber.substring(7)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        House Description
+                      </Label>
+                      <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                        {selectedRequest.requestDetails}
+                      </p>
+                    </div>
+                    <div className="relative ">
+                      <div className="w-full h-35 overflow-hidden [mask-image:linear-gradient(to_top,transparent,black)] [--tw-mask-image:linear-gradient(to_top,transparent,black)]">
+                        <MapView
+                          useMarker={false}
+                          className="-mt-75 pointer-events-none"
+                          latitude={selectedRequest.latitude?.toString() || ""}
+                          longitude={
+                            selectedRequest.longitude?.toString() || ""
+                          }
+                          zoom={13}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => setOpenMap(true)}
+                        className="absolute right-1/2 translate-x-1/2 bottom-4"
+                      >
+                        View Map
+                      </Button>
+                    </div>
+                  </div>
+                  {selectedRequest.requestStatus.toLowerCase() ==
+                    "in progress" && (
+                    <div className="space-y-3 border-t pt-4">
+                      <div className="flex w-full gap-2">
+                        <div className="space-y-2 w-1/2">
+                          <Label className="text-xs text-muted-foreground">
+                            Damage Category
+                          </Label>
+                          <Select
+                            value={damageCategoryId}
+                            onValueChange={setDamageCategoryId}
+                          >
+                            <SelectTrigger className="h-8 text-sm w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">
+                                Partially Damaged
+                              </SelectItem>
+                              <SelectItem value="2">Totally Damaged</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2 w-1/2">
+                          <Label className="text-xs text-muted-foreground">
+                            House Category
+                          </Label>
+                          <Select
+                            value={houseCategoryId}
+                            onValueChange={setHouseCategoryId}
+                          >
+                            <SelectTrigger className="h-8 text-sm w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">Safe</SelectItem>
+                              <SelectItem value="2">
+                                Needs Retrofitting
+                              </SelectItem>
+                              <SelectItem value="3">
+                                Requires Rebuilding
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Assessment Notes
+                        </Label>
+                        <Textarea
+                          placeholder="Enter your structural assessment..."
+                          value={assessmentNote}
+                          onChange={(e) => setAssessmentNote(e.target.value)}
+                          rows={4}
+                          className="text-sm min-h-[100px]"
+                        />
+                      </div>
+
+                      <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                        <p className="text-xs text-amber-800">
+                          <strong>Note:</strong> Your assessment will be
+                          reviewed by LGU officials.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {evaluations
+                    .filter((e) => e.requestId === selectedRequest.requestId)
+                    .map((e) => {
+                      return (
+                        <>
+
+                          <div className="flex w-full gap-2">
+                            <div className="space-y-2 w-1/2">
+                              <Label className="text-xs text-muted-foreground">
+                                Damage Category
+                              </Label>
+                              <div>{e.damageCategory}</div>
+                            </div>
+                            <div className="space-y-2 w-1/2">
+                              <Label className="text-xs text-muted-foreground">
+                                House Category
+                              </Label>
+                              <div>{e.houseCategory}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Assessment Note
+                            </Label>
+                            <p className="mt-1 pl-4 py-4 text-xs bg-muted p-2 rounded text-card-foreground">
+                              {e.note ?? "This volunteer didn't left any note."}
+                            </p>
+                          </div>
+                        </>
+                      );
+                    })}
+                </div>
+
+                <DrawerFooter className="flex flex-col sm:flex-row gap-2 pt-4">
+                  {selectedRequest.requestStatus.toLowerCase() !==
+                    "completed" && (
+                    <>
+                      <Button
+                        disabled={loading}
+                        variant="outline"
+                        onClick={() => setSelectedRequest(null)}
+                        className="h-9 text-sm w-full sm:w-24"
+                      >
+                        Cancel
+                      </Button>
+                      {selectedRequest.requestStatus.toLowerCase() ===
+                        "in progress" && (
+                        <Button
                           disabled={loading}
                           onClick={async () => await handleCreateEvaluation()}
                           className="h-9 text-sm"
@@ -616,21 +834,15 @@ export default function VolunteerDashboard() {
                       )}
                     </>
                   )}
-                </DialogFooter>
+                </DrawerFooter>
               </>
             )}
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>) }
         {isDesktop ? (
           <Dialog open={openMap} onOpenChange={setOpenMap}>
             <DialogContent className="md:max-w-[47.5rem] space-y-4">
-              <DialogHeader>
-                <DialogTitle>Select Property Location</DialogTitle>
-                <DialogDescription>
-                  Click on the map to select your property location or use
-                  current location
-                </DialogDescription>
-              </DialogHeader>
+              
               <MapView
                 latitude={selectedRequest?.latitude?.toString() || ""}
                 longitude={selectedRequest?.longitude?.toString() || ""}
@@ -649,18 +861,18 @@ export default function VolunteerDashboard() {
         ) : (
           <Drawer open={openMap} onOpenChange={setOpenMap}>
             <DrawerContent className="h-[95dvh] max-h-[95dvh] min-h-[55dvh]">
-              <DrawerHeader>
-                <DrawerTitle>Select Property Location</DrawerTitle>
-                <DrawerDescription>
-                  Click on the map to select your property location or use
-                  current location
-                </DrawerDescription>
-              </DrawerHeader>
+              
+               <div
+              className="flex-1 overflow-hidden"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
               <MapView
                 latitude={selectedRequest?.latitude?.toString() || ""}
                 longitude={selectedRequest?.longitude?.toString() || ""}
               />
-
+            </div>
               <DrawerFooter className="pt-4 mb-8">
                 <Button
                   size="lg"

@@ -132,7 +132,6 @@ export const useVolunteerStore = create<VolunteerState>((set, get) => ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch requests");
       set({ requests: data.requests || [] });
-      console.log("req", data.requests);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
     }
@@ -158,7 +157,6 @@ export const useVolunteerStore = create<VolunteerState>((set, get) => ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update request");
 
-      console.log("da", data);
       set({
         requests: get().requests.map((r) =>
           r.requestId === requestId

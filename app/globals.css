@@ -131,3 +131,7 @@ html{
 html::-webkit-scrollbar {
   display: none;
 }
+
+div::-webkit-scrollbar {
+  display: none;
+}

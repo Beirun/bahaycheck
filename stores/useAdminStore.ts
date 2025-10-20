@@ -52,7 +52,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch requests");
       set({ requests: data.requests || [] });
-      console.log('requests',data.requests)
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -72,11 +71,11 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to assign request");
-
+      const vol = get().users.find(u => u.userId === userId);
       set({
         requests: get().requests.map((r) =>
           r.requestId === requestId
-            ? { ...r, volunteerId: userId, requestStatus: 'Assigned' }
+            ? { ...r, volunteerId: userId, requestStatus: 'Assigned', volunteerName: `${vol?.firstName} ${vol?.lastName}`  }
             : r
         ),
       });
