@@ -42,7 +42,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   if (nonAuthenticatedRoutes.some((route) => pathname === route)) {
-    const { role } = await isAuthenticated(req);
+    const { role, error } = await isAuthenticated(req);
+    if(error)   return NextResponse.next();
     if (role) {
       const route =
         role?.toLowerCase() === "admin"
