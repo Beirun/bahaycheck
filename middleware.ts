@@ -12,7 +12,6 @@ export async function middleware(req: NextRequest) {
   const nonAuthenticatedRoutes = ["/signin", "/signup", "/"];
 
   if (
-    !pathname.includes("auth") &&
     authenticatePages.some((route) => pathname.startsWith(route))
   ) {
     const { error } = await isAuthenticated(req);
@@ -20,7 +19,7 @@ export async function middleware(req: NextRequest) {
   }
 
   if (
-    !pathname.includes("auth") &&
+    
     authenticatedRoutes.some((route) => pathname.startsWith(route))
   ) {
     const payload = await authenticateToken(req);
@@ -48,11 +47,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   if (
-    !pathname.includes("auth") &&
+ 
     nonAuthenticatedRoutes.some((route) => pathname === route)
   ) {
     const { role, error } = await isAuthenticated(req);
-    if (error) {
+    if (error && pathname !== '/signin') {
       return NextResponse.redirect(new URL("/signin", req.url));
     }
     if (role) {
@@ -66,6 +65,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL(route, req.url));
     }
   }
+      return NextResponse.next();
+
 }
 
 export const config = {
