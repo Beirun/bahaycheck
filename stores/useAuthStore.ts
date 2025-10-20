@@ -339,10 +339,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
       });
     },
 
-    handleTokenExpiry: async() => {
+    handleTokenExpiry: () => {
       localStorage.removeItem(STORAGE_USER);
       localStorage.removeItem(STORAGE_TOKEN);
-      await apiFetch("/api/auth/logout", { method: "POST" });
       set({
         user: null,
         accessToken: null,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtDecrypt, jwtVerify } from "jose";
+import { jwtVerify } from "jose";
 
 const SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || "your-secret-key"

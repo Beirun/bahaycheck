@@ -2,19 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateToken, isAuthenticated } from "@/utils/auth";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const authenticatedRoutes = ["/api/admin", "/api/user", "/api/volunteer","/api/notification"];
-  const authenticatePages = ["/admin", "/user", "/volunteer","/account"];
-  const nonAuthenticatedRoutes = ['/signin','/signup', '/'];
-  
-  if (!pathname.includes('auth') && authenticatePages.some((route) => pathname.startsWith(route))) {
+  const authenticatedRoutes = [
+    "/api/admin",
+    "/api/user",
+    "/api/volunteer",
+    "/api/notification",
+  ];
+  const authenticatePages = ["/admin", "/user", "/volunteer", "/account"];
+  const nonAuthenticatedRoutes = ["/signin", "/signup", "/"];
+
+  if (
+    !pathname.includes("auth") &&
+    authenticatePages.some((route) => pathname.startsWith(route))
+  ) {
     const { error } = await isAuthenticated(req);
-    if(error) return error;
+    if (error) return error;
   }
 
-  if (!pathname.includes('auth') && authenticatedRoutes.some((route) => pathname.startsWith(route))) {
+  if (
+    !pathname.includes("auth") &&
+    authenticatedRoutes.some((route) => pathname.startsWith(route))
+  ) {
     const payload = await authenticateToken(req);
-    if (payload.error)  return payload.error;
-    
+    if (payload.error) return payload.error;
+
     const role = payload.role;
     if (pathname.startsWith("/api/admin")) {
       if (role.toLowerCase() !== "admin") {
@@ -36,16 +47,23 @@ export async function middleware(req: NextRequest) {
     }
     return NextResponse.next();
   }
-  if(!pathname.includes('auth') && nonAuthenticatedRoutes.some((route) =>pathname === route)){
-    const { role } = await isAuthenticated(req);
-    if(role){
-        console.log(33)
-        const route = role?.toLowerCase() === 'admin'
+  if (
+    !pathname.includes("auth") &&
+    nonAuthenticatedRoutes.some((route) => pathname === route)
+  ) {
+    const { role, error } = await isAuthenticated(req);
+    if (error) {
+      return NextResponse.redirect(new URL("/signin", req.url));
+    }
+    if (role) {
+      console.log(33);
+      const route =
+        role?.toLowerCase() === "admin"
           ? "/admin"
-          : role?.toLowerCase() === 'volunteer'
+          : role?.toLowerCase() === "volunteer"
           ? "/volunteer"
           : "/user";
-      return NextResponse.redirect(new URL(route, req.url)) 
+      return NextResponse.redirect(new URL(route, req.url));
     }
   }
 }
